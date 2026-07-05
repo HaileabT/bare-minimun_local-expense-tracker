@@ -30,3 +30,7 @@ alias expense="zsh <repo-dir>/scripts/start.sh"
 ```bash
 zsh
 ```
+4. Test
+```bash
+expense
+```
