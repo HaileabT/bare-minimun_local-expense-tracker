@@ -478,7 +478,7 @@
                             margin-bottom: 16px;
                         "
                     >
-                        <h2>Internal Stream Analytics</h2>
+                        <h2>Spending Overview</h2>
                         <div style="display: flex; gap: 8px">
                             <button
                                 class="success"
@@ -503,7 +503,7 @@
 
                     <div class="metrics-row">
                         <div class="metric-card">
-                            <label>Today's Volume</label>
+                            <label>Spent Today</label>
                             <div
                                 id="metricToday"
                                 class="metric-val"
@@ -513,15 +513,15 @@
                             </div>
                         </div>
                         <div class="metric-card">
-                            <label>Current Month Target</label>
+                            <label>Spent This Month</label>
                             <div id="metricMonth" class="metric-val">0.00</div>
                         </div>
                         <div class="metric-card">
-                            <label>Rolling 7-Day Velocity</label>
+                            <label>Spent Last 7 Days</label>
                             <div id="metricWeek" class="metric-val">0.00</div>
                         </div>
                         <div class="metric-card">
-                            <label>Max Density Driver</label>
+                            <label>Top Spending Category</label>
                             <div
                                 id="metricHeavyweight"
                                 class="metric-val"
@@ -549,7 +549,7 @@
                             margin-bottom: 16px;
                         "
                     >
-                        <h2>Transaction Stream</h2>
+                        <h2>Expenses</h2>
                         <button onclick="toggleExpenseModal(true)">
                             + Log Expense
                         </button>
@@ -666,7 +666,7 @@
 
                 <!-- PER-DAY VELOCITY MATRIX BLOCK -->
                 <div class="panel">
-                    <h2>Daily Analytics Distribution Matrix</h2>
+                    <h2>Daily Spending Breakdown</h2>
                     <div
                         class="table-wrapper"
                         style="max-height: 320px; overflow-y: auto"
@@ -675,9 +675,9 @@
                             <thead>
                                 <tr>
                                     <th>Calendar Date</th>
-                                    <th>Daily Volume Outflow</th>
-                                    <th>Transaction Hits</th>
-                                    <th>Mean Value Track</th>
+                                    <th>Total Spent</th>
+                                    <th>No. of Expenses</th>
+                                    <th>Avg. Expense</th>
                                 </tr>
                             </thead>
                             <tbody id="dailyAnalyticsTableBody">
@@ -854,17 +854,15 @@
                     "
                 >
                     <div>
-                        <h2 style="margin-bottom: 4px">
-                            Dynamic Stream Intelligence Matrix
-                        </h2>
+                        <h2 style="margin-bottom: 4px">Expense Analytics</h2>
                         <p
                             style="
                                 font-size: 0.8rem;
                                 color: var(--text-secondary);
                             "
                         >
-                            Multi-month historical tracking anchored to billing
-                            parameter and targets
+                            Multi-month breakdown of your spending by category,
+                            billing cycle, and day
                         </p>
                     </div>
                     <button
@@ -899,12 +897,10 @@
                             gap: 6px;
                         "
                     >
-                        <label style="font-size: 0.7rem"
-                            >Analytics Scope Query</label
-                        >
+                        <label style="font-size: 0.7rem">Search by Note</label>
                         <input
                             id="modalFilterKeyword"
-                            placeholder="Match remarks pattern..."
+                            placeholder="e.g. coffee, rent..."
                             oninput="runDeepAnalyticsEngine()"
                             style="background: var(--bg-input)"
                         />
@@ -918,7 +914,7 @@
                         "
                     >
                         <label style="font-size: 0.7rem"
-                            >Isolate Focus Category</label
+                            >Filter by Category</label
                         >
                         <select
                             id="modalFilterCategory"
@@ -936,9 +932,7 @@
                             gap: 6px;
                         "
                     >
-                        <label style="font-size: 0.7rem"
-                            >Minimum Unit Outlier</label
-                        >
+                        <label style="font-size: 0.7rem">Min. Amount ($)</label>
                         <input
                             id="modalFilterMinAmount"
                             type="number"
@@ -956,12 +950,12 @@
                         "
                     >
                         <label style="font-size: 0.7rem"
-                            >Target Limit ($)</label
+                            >Monthly Spending Goal ($)</label
                         >
                         <input
                             id="modalSpendingGoal"
                             type="number"
-                            placeholder="Goal limit..."
+                            placeholder="e.g. 2000"
                             oninput="runDeepAnalyticsEngine()"
                             style="
                                 background: var(--bg-input);
@@ -975,7 +969,7 @@
                         style="height: 33px"
                         onclick="resetModalFilters()"
                     >
-                        Reset Focus
+                        Reset Filters
                     </button>
                 </div>
 
@@ -1007,8 +1001,8 @@
                                     margin-bottom: 6px;
                                     display: block;
                                 "
-                                >Temporal Cycles Matrix (Ranked by Outflow
-                                Velocity)</label
+                                >Monthly Spending by Billing Cycle (Highest
+                                First)</label
                             >
                             <div
                                 class="table-wrapper"
@@ -1022,11 +1016,11 @@
                                     <thead>
                                         <tr>
                                             <th style="width: 60px">Rank</th>
-                                            <th>Billing Cycle Period</th>
-                                            <th>Cycle Outflow</th>
-                                            <th>Limit Target Cap</th>
-                                            <th>Peak Core Driver</th>
-                                            <th>Transactions</th>
+                                            <th>Month</th>
+                                            <th>Total Spent</th>
+                                            <th>vs. Goal</th>
+                                            <th>Top Category</th>
+                                            <th>Expenses</th>
                                         </tr>
                                     </thead>
                                     <tbody
@@ -1051,7 +1045,7 @@
                         "
                     >
                         <label style="margin-bottom: 12px; display: block"
-                            >Filtered Core Sector Volume</label
+                            >Spending by Category</label
                         >
                         <div
                             style="
@@ -1088,7 +1082,7 @@
                         style="background: var(--bg-element); padding: 14px"
                     >
                         <label style="color: var(--danger)"
-                            >Critical Peak Trace</label
+                            >Highest Single Expense</label
                         >
                         <div
                             id="analyticsOutliers"
@@ -1105,7 +1099,7 @@
                         style="background: var(--bg-element); padding: 14px"
                     >
                         <label style="color: var(--success)"
-                            >Temporal Density Peak</label
+                            >Busiest Spending Day</label
                         >
                         <div
                             id="analyticsTemporal"
@@ -1121,7 +1115,7 @@
 
                 <!-- DOWNSTREAM LEDGER TRACK -->
                 <label style="margin-bottom: 8px; display: block"
-                    >Macro Distribution Breakdown</label
+                    >Spending Breakdown by Category</label
                 >
                 <div
                     class="table-wrapper"
@@ -1134,11 +1128,11 @@
                     <table>
                         <thead>
                             <tr>
-                                <th>Context Category Name</th>
-                                <th>Aggregate Total Volume</th>
-                                <th>Volume Share Ratio</th>
-                                <th>Mean Value Distribution</th>
-                                <th>Hit Count Frequency</th>
+                                <th>Category</th>
+                                <th>Total Spent</th>
+                                <th>% of Total</th>
+                                <th>Avg. Expense</th>
+                                <th>No. of Expenses</th>
                             </tr>
                         </thead>
                         <tbody id="analyticsTableBody"></tbody>
@@ -1159,7 +1153,7 @@
                         class="secondary"
                         onclick="toggleAnalyticsModal(false)"
                     >
-                        Close Blueprint
+                        Close
                     </button>
                 </div>
             </div>
