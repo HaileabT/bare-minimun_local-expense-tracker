@@ -4,6 +4,9 @@ import { getDB } from "../db/index.js";
 import { and, desc, eq, gte, inArray, like, lte, SQL } from "drizzle-orm";
 import { CategoryFilters, ExpenseFilters } from "./types.js";
 import { getIDParam, isValidDate, ValidationOutput } from "./utils.js";
+import { readFile } from "node:fs/promises";
+import { settingsService } from "./settings.js";
+import { SettingsType } from "../data/settings-type.js";
 
 function validateCreate(
   body: Omit<ExpenseCreate, "date"> & { date?: string },
@@ -54,6 +57,19 @@ async function create(req: Request, res: Response) {
   console.log(validated);
 
   const db = getDB();
+
+  let goal: number | undefined;
+  try {
+    const raw = await readFile(settingsService.getSettingsPath(), {
+      encoding: "utf-8",
+    });
+    const settings = JSON.parse(raw) as SettingsType;
+    goal = settings.spendingGoal;
+  } catch {
+    goal = undefined;
+  }
+
+  body.currentGoal = goal;
 
   if (body.categoryId) {
     const category = await db
@@ -340,7 +356,7 @@ async function getMany(req: Request, res: Response) {
     .select()
     .from(expenses)
     .where(where)
-    .orderBy(desc(expenses.date));
+    .orderBy(desc(expenses.date), desc(expenses.createdAt));
   res.status(200).json(result);
 }
 

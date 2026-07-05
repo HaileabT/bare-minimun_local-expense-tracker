@@ -1096,18 +1096,20 @@
                                     border-radius: 6px;
                                 "
                             >
-                                <table>
-                                    <thead>
+                                <table style="width: 100%; overflow-x: auto">
+                                    <thead style="width: max-content">
                                         <tr>
                                             <th style="width: 60px">Rank</th>
                                             <th>Month</th>
                                             <th>Total Spent</th>
+                                            <th>Goal</th>
                                             <th>vs. Goal</th>
                                             <th>Top Category</th>
                                             <th>Expenses</th>
                                         </tr>
                                     </thead>
                                     <tbody
+                                        style="width: max-content"
                                         id="analyticsMonthRankTableBody"
                                     ></tbody>
                                 </table>
@@ -2025,6 +2027,7 @@
 
                 const catMetrics = {};
                 const historicalCycles = {};
+                const goalsPerMonth = {};
                 const dailyVelocity = {};
                 let maxSingleTransaction = {
                     amount: 0,
@@ -2066,10 +2069,14 @@
                         exp.date,
                         cachedMonthStart,
                     );
+                    goalsPerMonth[cyclePeriodKey] = exp.currentGoal;
                     if (!historicalCycles[cyclePeriodKey])
                         historicalCycles[cyclePeriodKey] = {
                             total: 0,
                             count: 0,
+                            goal:
+                                goalsPerMonth[cyclePeriodKey] ||
+                                targetGoalConfig,
                             categories: {},
                         };
                     historicalCycles[cyclePeriodKey].total += amt;
@@ -2122,7 +2129,8 @@
                         );
                         let trackingBadgeHtml = `<span style="color:var(--text-secondary); font-size:0.75rem;">—</span>`;
                         if (targetGoalConfig > 0) {
-                            const r = meta.total / targetGoalConfig;
+                            const r =
+                                meta.total / (meta.goal || targetGoalConfig);
                             if (r >= 1.0)
                                 trackingBadgeHtml = `<span style="background:rgba(235,87,87,0.15); color:#eb5757; padding:2px 6px; border-radius:4px; font-size:0.7rem; font-weight:bold; border:1px solid rgba(235,87,87,0.3);">Critical Tier</span>`;
                             else if (r >= 0.85)
@@ -2134,10 +2142,11 @@
                         mTr.innerHTML = `
                                         <td style="font-family:monospace; font-weight:700; color:var(--text-secondary);">#${index + 1}</td>
                                         <td style="font-weight:600; color:var(--text-primary);">${cycleName}</td>
-                                        <td class="amount-text" style="color:var(--accent);">${meta.total.toFixed(2)} Birr</td>
+                                        <td class="amount-text" style="color:var(--accent);">${meta.total.toFixed(2)}</td>
+                                        <td class="amount-text" style="color:var(--accent);">${(meta.goal || targetGoalConfig).toFixed(2)}</td>
                                         <td>${trackingBadgeHtml}</td>
-                                        <td style="font-size:0.8rem;">${highestMonthDriver} <span style="color:var(--text-secondary); font-size:0.75rem;">(${highestMonthDriverAmt.toFixed(0)} Birr)</span></td>
-                                        <td style="font-family:monospace; color:var(--text-secondary);">${meta.count} units</td>`;
+                                        <td style="font-size:0.8rem;">${highestMonthDriver} <span style="color:var(--text-secondary); font-size:0.65rem;">(${highestMonthDriverAmt.toFixed(0)})</span></td>
+                                        <td style="font-family:monospace; color:var(--text-secondary);">${meta.count}</td>`;
                         return mTr;
                     },
                 );

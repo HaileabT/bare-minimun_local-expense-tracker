@@ -27,6 +27,7 @@ export const expenses = sqliteTable("expenses", {
     .default(sql`(unixepoch() * 1000)`)
     .notNull(),
   amount: int().notNull(),
+  currentGoal: int("current_goal"),
   createdAt: integer("created_at", { mode: "timestamp_ms" })
     .default(sql`(unixepoch() * 1000)`)
     .notNull(),

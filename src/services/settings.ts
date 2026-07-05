@@ -186,4 +186,4 @@ async function seed() {
   }
 }
 
-export const settingsService = { update, reset, seed, get };
+export const settingsService = { update, reset, seed, get, getSettingsPath };
