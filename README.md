@@ -1,4 +1,4 @@
-# Just Another Simple CRUD Expense Tracker
+# Simple Local Expense Tracker
 I made this simple app for personal use and if you are interested and want to try it out.
 1. Clone it
 ```bash
