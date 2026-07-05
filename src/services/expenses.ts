@@ -340,7 +340,7 @@ async function getMany(req: Request, res: Response) {
     .select()
     .from(expenses)
     .where(where)
-    .orderBy(desc(expenses.createdAt));
+    .orderBy(desc(expenses.date));
   res.status(200).json(result);
 }
 
