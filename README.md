@@ -2,8 +2,7 @@
 I made this simple app for personal use and if you are interested and want to try it out.
 1. Clone it
 ```bash
-git clone https://github.com/HaileabT/bare-minimun_local-expense-tracker <destination>
-cd <destination>
+git clone https://github.com/HaileabT/bare-minimun_local-expense-tracker <destination> && cd <destination>
 ```
 2. Install dependancies
 ```bash
