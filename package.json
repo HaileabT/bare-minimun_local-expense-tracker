@@ -1,0 +1,34 @@
+{
+  "name": "my-expenses",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "server:dev": "nodemon src/server.ts",
+    "frontend:dev": "serve -p 8008 ./portal",
+    "dev": "concurrently \"pnpm server:dev\" \"pnpm frontend:dev\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@11.9.0",
+  "dependencies": {
+    "@libsql/client": "^0.17.4",
+    "concurrently": "^10.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "drizzle-orm": "1.0.0-rc.4",
+    "express": "^5.2.1",
+    "serve": "^14.2.6"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.1.0",
+    "drizzle-kit": "1.0.0-rc.4",
+    "tsx": "^4.23.0",
+    "wait-on": "^9.0.10"
+  }
+}

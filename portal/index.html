@@ -1,0 +1,1965 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Expense Analytics Dashboard</title>
+
+        <style>
+            :root {
+                --bg-main: #0a0a0a;
+                --bg-surface: #121212;
+                --bg-element: #1c1c1e;
+                --bg-input: #262629;
+                --text-primary: #f2f2f7;
+                --text-secondary: #aeaeae;
+                --accent: #2f80ed;
+                --accent-hover: #1b66cb;
+                --danger: #eb5757;
+                --success: #27ae60;
+                --warning: #f2c94c;
+                --border: #2c2c2e;
+                --overlay: rgba(0, 0, 0, 0.7);
+            }
+
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+                font-family:
+                    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                    sans-serif;
+            }
+
+            body {
+                background: var(--bg-main);
+                color: var(--text-primary);
+                padding: 24px;
+                font-size: 14px;
+            }
+
+            .dashboard-grid {
+                display: grid;
+                grid-template-columns: 1fr 360px;
+                gap: 24px;
+                max-width: 1600px;
+                margin: 0 auto;
+            }
+
+            @media (max-width: 1100px) {
+                .dashboard-grid {
+                    grid-template-columns: 1fr;
+                }
+            }
+
+            header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding-bottom: 16px;
+                border-bottom: 1px solid var(--border);
+                margin-bottom: 24px;
+                max-width: 1600px;
+                margin-left: auto;
+                margin-right: auto;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+                font-weight: 700;
+                letter-spacing: -0.5px;
+            }
+            h2 {
+                font-size: 1.1rem;
+                font-weight: 600;
+                margin-bottom: 16px;
+                color: var(--text-primary);
+            }
+
+            .panel {
+                background: var(--bg-surface);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 20px;
+            }
+
+            .workspace {
+                display: flex;
+                flex-direction: column;
+                gap: 24px;
+            }
+
+            .metrics-row {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                gap: 16px;
+            }
+
+            .metric-card {
+                background: var(--bg-element);
+                border: 1px solid var(--border);
+                border-radius: 6px;
+                padding: 16px;
+            }
+
+            .metric-val {
+                font-size: 1.6rem;
+                font-weight: 700;
+                font-family: monospace;
+                margin-top: 4px;
+                color: var(--text-primary);
+            }
+
+            .inline-form-row {
+                display: flex;
+                gap: 12px;
+                align-items: flex-end;
+                flex-wrap: wrap;
+                margin-bottom: 16px;
+            }
+
+            .form-group {
+                flex: 1;
+                min-width: 140px;
+                display: flex;
+                flex-direction: column;
+                gap: 6px;
+            }
+
+            .dialog-form-group {
+                display: flex;
+                flex-direction: column;
+                gap: 6px;
+                margin-bottom: 16px;
+            }
+
+            label {
+                font-size: 0.75rem;
+                font-weight: 500;
+                color: var(--text-secondary);
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            input,
+            select,
+            textarea {
+                background: var(--bg-input);
+                color: var(--text-primary);
+                border: 1px solid var(--border);
+                border-radius: 6px;
+                padding: 8px 12px;
+                font-size: 0.85rem;
+                width: 100%;
+                outline: none;
+            }
+
+            input:focus,
+            select:focus {
+                border-color: var(--accent);
+            }
+
+            button {
+                background: var(--accent);
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 8px 16px;
+                font-size: 0.85rem;
+                font-weight: 500;
+                cursor: pointer;
+                white-space: nowrap;
+            }
+
+            button:hover {
+                background: var(--accent-hover);
+            }
+
+            button.secondary {
+                background: transparent;
+                border: 1px solid var(--border);
+                color: var(--text-secondary);
+            }
+            button.secondary:hover {
+                background: var(--bg-element);
+                color: var(--text-primary);
+            }
+
+            button.success {
+                background: transparent;
+                border: 1px solid var(--success);
+                color: var(--success);
+            }
+            button.success:hover {
+                background: var(--success);
+                color: white;
+            }
+
+            button.action-link {
+                background: transparent;
+                color: var(--text-secondary);
+                padding: 4px 6px;
+                font-size: 0.8rem;
+            }
+            button.action-link:hover {
+                color: var(--accent);
+                background: rgba(47, 128, 237, 0.1);
+            }
+
+            button.danger-action {
+                background: transparent;
+                color: var(--text-secondary);
+                padding: 4px 6px;
+                font-size: 0.8rem;
+            }
+            button.danger-action:hover {
+                color: var(--danger);
+                background: rgba(235, 87, 87, 0.1);
+            }
+
+            .modal-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background: var(--overlay);
+                backdrop-filter: blur(4px);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 1000;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.2s ease;
+            }
+
+            .modal-overlay.active {
+                opacity: 1;
+                pointer-events: auto;
+            }
+
+            .modal-content {
+                background: var(--bg-surface);
+                border: 1px solid var(--border);
+                width: 100%;
+                max-width: 460px;
+                border-radius: 8px;
+                padding: 24px;
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+                transform: translateY(-20px);
+                transition: transform 0.2s ease;
+            }
+
+            .modal-overlay.active .modal-content {
+                transform: translateY(0);
+            }
+
+            .modal-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 20px;
+            }
+
+            .table-wrapper {
+                overflow-x: auto;
+                margin-top: 8px;
+            }
+
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                text-align: left;
+            }
+
+            th,
+            td {
+                padding: 10px 12px;
+                border-bottom: 1px solid var(--border);
+            }
+
+            th {
+                background: var(--bg-element);
+                color: var(--text-secondary);
+                font-size: 0.75rem;
+                text-transform: uppercase;
+                font-weight: 600;
+            }
+
+            tr:hover td {
+                background: rgba(255, 255, 255, 0.02);
+            }
+
+            .id-badge {
+                color: var(--text-secondary);
+                font-family: monospace;
+            }
+            .amount-text {
+                font-weight: 600;
+                font-family: monospace;
+            }
+
+            .table-input {
+                background: var(--bg-input);
+                border: 1px solid var(--border);
+                padding: 4px 8px;
+                font-size: 0.85rem;
+                border-radius: 4px;
+                color: var(--text-primary);
+                width: 100%;
+            }
+            .table-input:focus {
+                border-color: var(--accent);
+            }
+
+            .sidebar {
+                display: flex;
+                flex-direction: column;
+                gap: 24px;
+            }
+
+            .category-list {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                max-height: 240px;
+                overflow-y: auto;
+                margin-top: 12px;
+            }
+
+            .category-item {
+                display: grid;
+                grid-template-columns: 1fr auto auto;
+                gap: 6px;
+                align-items: center;
+                background: var(--bg-element);
+                padding: 6px 10px;
+                border-radius: 6px;
+                border: 1px solid var(--border);
+            }
+
+            .category-item input {
+                background: transparent;
+                border: 1px solid transparent;
+                padding: 4px;
+                font-size: 0.85rem;
+            }
+
+            .category-item input:focus {
+                background: var(--bg-input);
+                border-color: var(--border);
+            }
+
+            .filter-badge {
+                background: var(--bg-element);
+                color: var(--text-secondary);
+                border: 1px solid var(--border);
+                padding: 6px 12px;
+                border-radius: 20px;
+                cursor: pointer;
+                font-size: 0.8rem;
+                user-select: none;
+                transition: all 0.15s ease;
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                white-space: nowrap;
+            }
+
+            .filter-badge:hover {
+                border-color: var(--text-secondary);
+                color: var(--text-primary);
+            }
+
+            .filter-badge.active {
+                background: rgba(47, 128, 237, 0.15);
+                color: var(--accent);
+                border-color: var(--accent);
+                font-weight: 600;
+            }
+
+            .filter-badge .check-mark {
+                display: none;
+            }
+            .filter-badge.active .check-mark {
+                display: inline;
+            }
+
+            details {
+                background: #000;
+                border: 1px solid var(--border);
+                border-radius: 6px;
+            }
+
+            summary {
+                padding: 10px;
+                cursor: pointer;
+                font-weight: 500;
+                font-size: 0.8rem;
+                color: var(--text-secondary);
+            }
+
+            pre {
+                padding: 12px;
+                font-family: monospace;
+                font-size: 0.8rem;
+                overflow-x: auto;
+                max-height: 200px;
+                color: #4af626;
+                border-top: 1px solid var(--border);
+            }
+
+            .status-indicator {
+                display: inline-block;
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: var(--text-secondary);
+                margin-right: 6px;
+            }
+            .status-indicator.synced {
+                background: var(--success);
+            }
+        </style>
+    </head>
+    <body>
+        <header>
+            <div>
+                <h1>Expense Intelligence Matrix</h1>
+            </div>
+            <div
+                style="
+                    display: flex;
+                    gap: 8px;
+                    align-items: center;
+                    width: 300px;
+                "
+            >
+                <label style="white-space: nowrap">API Host:</label>
+                <input id="baseUrl" value="http://localhost:3000/api" />
+            </div>
+        </header>
+
+        <div class="dashboard-grid">
+            <!-- MAIN ANALYTICS WORKSPACE -->
+            <div class="workspace">
+                <div class="panel">
+                    <div
+                        style="
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            margin-bottom: 16px;
+                        "
+                    >
+                        <h2>Internal Stream Analytics</h2>
+                        <div style="display: flex; gap: 8px">
+                            <button
+                                class="success"
+                                onclick="openAnalyticsModal()"
+                            >
+                                ⚡ Analyze Matrix
+                            </button>
+                            <button
+                                class="secondary"
+                                onclick="exportData('json')"
+                            >
+                                Export JSON
+                            </button>
+                            <button
+                                class="secondary"
+                                onclick="exportData('csv')"
+                            >
+                                Export CSV
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="metrics-row">
+                        <div class="metric-card">
+                            <label>Total Pipeline Volume</label>
+                            <div id="metricTotal" class="metric-val">0.00</div>
+                        </div>
+                        <div class="metric-card">
+                            <label>Current Month Target</label>
+                            <div id="metricMonth" class="metric-val">0.00</div>
+                        </div>
+                        <div class="metric-card">
+                            <label>Rolling 7-Day Velocity</label>
+                            <div id="metricWeek" class="metric-val">0.00</div>
+                        </div>
+                        <div class="metric-card">
+                            <label>Max Density Driver</label>
+                            <div
+                                id="metricHeavyweight"
+                                class="metric-val"
+                                style="
+                                    font-size: 1.1rem;
+                                    line-height: 2.2rem;
+                                    white-space: nowrap;
+                                    overflow: hidden;
+                                    text-overflow: ellipsis;
+                                "
+                            >
+                                —
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div
+                        style="
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            margin-bottom: 16px;
+                        "
+                    >
+                        <h2>Transaction Stream</h2>
+                        <button onclick="toggleExpenseModal(true)">
+                            + Log Expense
+                        </button>
+                    </div>
+
+                    <!-- COALESCED FILTER ENGINE BLOCK -->
+                    <div
+                        class="inline-form-row"
+                        style="
+                            align-items: flex-start;
+                            gap: 16px;
+                            margin-bottom: 20px;
+                            border-bottom: 1px solid var(--border);
+                            padding-bottom: 20px;
+                        "
+                    >
+                        <div
+                            style="
+                                display: flex;
+                                flex-direction: column;
+                                gap: 12px;
+                                flex: 1;
+                                min-width: 300px;
+                            "
+                        >
+                            <div style="display: flex; gap: 12px; width: 100%">
+                                <div class="form-group">
+                                    <label>Min Amt</label>
+                                    <input
+                                        id="filterMinAmount"
+                                        type="number"
+                                        placeholder="Min"
+                                    />
+                                </div>
+                                <div class="form-group">
+                                    <label>Max Amt</label>
+                                    <input
+                                        id="filterMaxAmount"
+                                        type="number"
+                                        placeholder="Max"
+                                    />
+                                </div>
+                                <div class="form-group">
+                                    <label>From</label>
+                                    <input id="filterFromDate" type="date" />
+                                </div>
+                                <div class="form-group">
+                                    <label>To</label>
+                                    <input id="filterToDate" type="date" />
+                                </div>
+                            </div>
+                            <div class="form-group" style="width: 100%">
+                                <label>Note Keyword</label>
+                                <div style="display: flex; gap: 8px">
+                                    <input
+                                        id="filterNote"
+                                        placeholder="Search string..."
+                                    />
+                                    <button
+                                        class="secondary"
+                                        onclick="loadExpenses()"
+                                    >
+                                        Query Stream
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div
+                            class="form-group"
+                            style="width: 320px; flex-shrink: 0"
+                        >
+                            <label>Filter Categories (Click to toggle)</label>
+                            <div
+                                id="filterCategoryBadges"
+                                style="
+                                    display: flex;
+                                    flex-wrap: nowrap;
+                                    gap: 6px;
+                                    margin-top: 6px;
+                                    overflow-x: auto;
+                                    padding-bottom: 8px;
+                                    width: 100%;
+                                    scrollbar-width: thin;
+                                "
+                            >
+                                <!-- Injected interactively -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="width: 80px">Sys ID</th>
+                                    <th>Amount</th>
+                                    <th>Note Identifier</th>
+                                    <th>Assigned Category</th>
+                                    <th>Effective Date</th>
+                                    <th style="width: 120px; text-align: right">
+                                        Action
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody id="expensesTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SIDE PANEL CONTROLS -->
+            <div class="sidebar">
+                <div class="panel">
+                    <div
+                        style="
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            margin-bottom: 12px;
+                        "
+                    >
+                        <h2>System Parameters</h2>
+                        <span
+                            id="settingsStatus"
+                            class="status-indicator"
+                        ></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Billing Month Base Day</label>
+                        <input
+                            id="monthStart"
+                            type="number"
+                            placeholder="1-31"
+                            style="margin-top: 4px"
+                            oninput="flagSettingsDirty()"
+                        />
+                    </div>
+
+                    <div class="form-group" style="margin-top: 12px">
+                        <label>Monthly Spending Goal ($)</label>
+                        <div style="display: flex; gap: 8px; margin-top: 4px">
+                            <input
+                                id="spendingGoal"
+                                type="number"
+                                placeholder="Goal cap limit..."
+                                style="margin-top: 0"
+                                oninput="flagSettingsDirty()"
+                            />
+                            <button
+                                id="btnSaveSettings"
+                                class="success"
+                                style="display: none"
+                                onclick="saveSettings()"
+                            >
+                                Commit
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h2>Categories</h2>
+                    <div class="form-group">
+                        <label>Add New Context</label>
+                        <div style="display: flex; gap: 8px; margin-top: 4px">
+                            <input
+                                id="categoryName"
+                                placeholder="Naming sequence..."
+                                style="margin-top: 0"
+                            />
+                            <button onclick="createCategory()">Add</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 12px">
+                        <label>Quick Query Name</label>
+                        <input
+                            id="filterCatName"
+                            placeholder="Filter dynamic stack..."
+                            oninput="loadCategories()"
+                        />
+                    </div>
+
+                    <div id="categories" class="category-list"></div>
+                </div>
+
+                <details>
+                    <summary>Raw Server JSON Output</summary>
+                    <pre id="output">{}</pre>
+                </details>
+            </div>
+        </div>
+
+        <!-- INTERACTIVE DATA COLLECTION MODAL -->
+        <div
+            id="expenseModal"
+            class="modal-overlay"
+            onclick="if (event.target === this) toggleExpenseModal(false);"
+        >
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 style="margin-bottom: 0">Log New Transaction</h2>
+                    <button
+                        class="secondary"
+                        style="padding: 4px 10px"
+                        onclick="toggleExpenseModal(false)"
+                    >
+                        ✕
+                    </button>
+                </div>
+
+                <div class="dialog-form-group">
+                    <label>Amount*</label>
+                    <input id="amount" type="number" placeholder="0.00" />
+                </div>
+                <div class="dialog-form-group">
+                    <label>Category Mapping</label>
+                    <select id="catId">
+                        <option value="">Unassigned</option>
+                    </select>
+                </div>
+                <div class="dialog-form-group">
+                    <label>Transaction Date</label>
+                    <input id="expDate" type="date" />
+                </div>
+                <div class="dialog-form-group" style="margin-bottom: 24px">
+                    <label>Additional Note</label>
+                    <input id="note" placeholder="Transaction remarks..." />
+                </div>
+
+                <div
+                    style="display: flex; gap: 12px; justify-content: flex-end"
+                >
+                    <button
+                        class="secondary"
+                        onclick="toggleExpenseModal(false)"
+                    >
+                        Cancel
+                    </button>
+                    <button onclick="createExpense()">Commit to Stream</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SYSTEM ANALYTICS DEEP-DIVE MODAL WITH HISTORICAL LEDGER ENGINE & METRIC THRESHOLDS -->
+        <div
+            id="analyticsModal"
+            class="modal-overlay"
+            onclick="if (event.target === this) toggleAnalyticsModal(false);"
+            style="align-items: flex-start; padding-top: 3vh; overflow-y: auto"
+        >
+            <div
+                class="modal-content"
+                style="max-width: 1100px; width: 95%; margin-bottom: 30px"
+            >
+                <div
+                    class="modal-header"
+                    style="
+                        border-bottom: 1px solid var(--border);
+                        padding-bottom: 12px;
+                        margin-bottom: 16px;
+                    "
+                >
+                    <div>
+                        <h2 style="margin-bottom: 4px">
+                            Dynamic Stream Intelligence Matrix
+                        </h2>
+                        <p
+                            style="
+                                font-size: 0.8rem;
+                                color: var(--text-secondary);
+                            "
+                        >
+                            Multi-month historical tracking anchored to billing
+                            parameter and targets
+                        </p>
+                    </div>
+                    <button
+                        class="secondary"
+                        style="padding: 4px 10px"
+                        onclick="toggleAnalyticsModal(false)"
+                    >
+                        ✕
+                    </button>
+                </div>
+
+                <!-- INLINE CONTROLS BAR FOR DEEP ANALYTICS CONTEXT -->
+                <div
+                    style="
+                        display: flex;
+                        gap: 12px;
+                        align-items: flex-end;
+                        flex-wrap: wrap;
+                        background: var(--bg-element);
+                        border: 1px solid var(--border);
+                        padding: 12px;
+                        border-radius: 6px;
+                        margin-bottom: 20px;
+                    "
+                >
+                    <div
+                        style="
+                            flex: 1;
+                            min-width: 180px;
+                            display: flex;
+                            flex-direction: column;
+                            gap: 6px;
+                        "
+                    >
+                        <label style="font-size: 0.7rem"
+                            >Analytics Scope Query</label
+                        >
+                        <input
+                            id="modalFilterKeyword"
+                            placeholder="Match remarks pattern..."
+                            oninput="runDeepAnalyticsEngine()"
+                            style="background: var(--bg-input)"
+                        />
+                    </div>
+                    <div
+                        style="
+                            width: 180px;
+                            display: flex;
+                            flex-direction: column;
+                            gap: 6px;
+                        "
+                    >
+                        <label style="font-size: 0.7rem"
+                            >Isolate Focus Category</label
+                        >
+                        <select
+                            id="modalFilterCategory"
+                            onchange="runDeepAnalyticsEngine()"
+                            style="background: var(--bg-input)"
+                        >
+                            <option value="ALL">All Categories</option>
+                        </select>
+                    </div>
+                    <div
+                        style="
+                            width: 130px;
+                            display: flex;
+                            flex-direction: column;
+                            gap: 6px;
+                        "
+                    >
+                        <label style="font-size: 0.7rem"
+                            >Minimum Unit Outlier</label
+                        >
+                        <input
+                            id="modalFilterMinAmount"
+                            type="number"
+                            placeholder="0.00"
+                            oninput="runDeepAnalyticsEngine()"
+                            style="background: var(--bg-input)"
+                        />
+                    </div>
+                    <div
+                        style="
+                            width: 140px;
+                            display: flex;
+                            flex-direction: column;
+                            gap: 6px;
+                        "
+                    >
+                        <label style="font-size: 0.7rem"
+                            >Target Limit ($)</label
+                        >
+                        <input
+                            id="modalSpendingGoal"
+                            type="number"
+                            placeholder="Goal limit..."
+                            oninput="runDeepAnalyticsEngine()"
+                            style="
+                                background: var(--bg-input);
+                                font-weight: bold;
+                                color: var(--accent);
+                            "
+                        />
+                    </div>
+                    <button
+                        class="secondary"
+                        style="height: 33px"
+                        onclick="resetModalFilters()"
+                    >
+                        Reset Focus
+                    </button>
+                </div>
+
+                <!-- TWO COLUMN TOP TIERS -->
+                <div
+                    style="
+                        display: grid;
+                        grid-template-columns: 1fr 340px;
+                        gap: 20px;
+                        margin-bottom: 20px;
+                    "
+                >
+                    <!-- Left: Historical Month Rank Grid -->
+                    <div
+                        class="panel"
+                        style="
+                            background: transparent;
+                            padding: 0;
+                            border: none;
+                            display: flex;
+                            flex-direction: column;
+                            gap: 16px;
+                        "
+                    >
+                        <div>
+                            <label
+                                style="
+                                    color: var(--accent);
+                                    margin-bottom: 6px;
+                                    display: block;
+                                "
+                                >Temporal Cycles Matrix (Ranked by Outflow
+                                Velocity)</label
+                            >
+                            <div
+                                class="table-wrapper"
+                                style="
+                                    background: var(--bg-element);
+                                    border: 1px solid var(--border);
+                                    border-radius: 6px;
+                                    max-height: 280px;
+                                    overflow-y: auto;
+                                "
+                            >
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 60px">Rank</th>
+                                            <th>Billing Cycle Period</th>
+                                            <th>Cycle Outflow</th>
+                                            <th>Limit Target Cap</th>
+                                            <th>Peak Core Driver</th>
+                                            <th>Transactions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody
+                                        id="analyticsMonthRankTableBody"
+                                    ></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Dynamic Vector Donut Ring -->
+                    <div
+                        class="panel"
+                        style="
+                            background: var(--bg-element);
+                            min-height: 280px;
+                            display: flex;
+                            flex-direction: column;
+                            justify-content: space-between;
+                            padding: 16px;
+                        "
+                    >
+                        <label style="margin-bottom: 12px; display: block"
+                            >Filtered Core Sector Volume</label
+                        >
+                        <div
+                            style="
+                                flex: 1;
+                                display: flex;
+                                justify-content: center;
+                                align-items: center;
+                            "
+                        >
+                            <canvas
+                                id="analyticsChartCanvas"
+                                width="300"
+                                height="200"
+                                style="max-width: 100%; max-height: 200px"
+                            ></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SPLIT INTERACTIVE SUMMARY TRACKS -->
+                <div
+                    style="
+                        display: grid;
+                        grid-template-columns: repeat(
+                            auto-fit,
+                            minmax(320px, 1fr)
+                        );
+                        gap: 20px;
+                        margin-bottom: 20px;
+                    "
+                >
+                    <div
+                        class="panel"
+                        style="background: var(--bg-element); padding: 14px"
+                    >
+                        <label style="color: var(--danger)"
+                            >Critical Peak Trace</label
+                        >
+                        <div
+                            id="analyticsOutliers"
+                            style="
+                                margin-top: 10px;
+                                display: flex;
+                                flex-direction: column;
+                                gap: 6px;
+                            "
+                        ></div>
+                    </div>
+                    <div
+                        class="panel"
+                        style="background: var(--bg-element); padding: 14px"
+                    >
+                        <label style="color: var(--success)"
+                            >Temporal Density Peak</label
+                        >
+                        <div
+                            id="analyticsTemporal"
+                            style="
+                                margin-top: 10px;
+                                display: flex;
+                                flex-direction: column;
+                                gap: 6px;
+                            "
+                        ></div>
+                    </div>
+                </div>
+
+                <!-- DOWNSTREAM LEDGER TRACK -->
+                <label style="margin-bottom: 8px; display: block"
+                    >Macro Distribution Breakdown</label
+                >
+                <div
+                    class="table-wrapper"
+                    style="
+                        max-height: 180px;
+                        overflow-y: auto;
+                        background: var(--bg-element);
+                        border: 1px solid var(--border);
+                        border-radius: 6px;
+                    "
+                >
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Context Category Name</th>
+                                <th>Aggregate Total Volume</th>
+                                <th>Volume Share Ratio</th>
+                                <th>Mean Value Distribution</th>
+                                <th>Hit Count Frequency</th>
+                            </tr>
+                        </thead>
+                        <tbody id="analyticsTableBody"></tbody>
+                    </table>
+                </div>
+
+                <div
+                    style="
+                        display: flex;
+                        justify-content: flex-end;
+                        margin-top: 20px;
+                        border-top: 1px solid var(--border);
+                        padding-top: 16px;
+                    "
+                >
+                    <button
+                        class="secondary"
+                        onclick="toggleAnalyticsModal(false)"
+                    >
+                        Close Blueprint
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            const output = document.getElementById("output");
+            let categoryCache = {};
+            let currentExpensesDataset = [];
+            let selectedFilterCategoryIds = new Set();
+            let editingExpenseId = null;
+
+            // Global settings caching variables
+            let cachedMonthStart = 1;
+            let cachedSpendingGoal = 0;
+
+            function url(path) {
+                return document.getElementById("baseUrl").value + path;
+            }
+
+            function toggleExpenseModal(open) {
+                const modal = document.getElementById("expenseModal");
+                if (open) {
+                    modal.classList.add("active");
+                    document.getElementById("amount").focus();
+                } else {
+                    modal.classList.remove("active");
+                }
+            }
+
+            window.addEventListener("keydown", (e) => {
+                if (e.key === "Escape") {
+                    toggleExpenseModal(false);
+                    toggleAnalyticsModal(false);
+                }
+            });
+
+            async function request(path, options = {}) {
+                options.headers = {
+                    ...options.headers,
+                    "Content-Type": "application/json",
+                };
+
+                let json;
+                try {
+                    const res = await fetch(url(path), options);
+                    try {
+                        json = await res.json();
+                    } catch {
+                        json = await res.text();
+                    }
+                } catch (err) {
+                    json = { error: err.message };
+                }
+
+                output.textContent = JSON.stringify(json, null, 2);
+                return json;
+            }
+
+            async function syncCategoryCache() {
+                const data = await request("/categories");
+                if (Array.isArray(data)) {
+                    categoryCache = {};
+                    const createDropdown = document.getElementById("catId");
+                    const badgeContainer = document.getElementById(
+                        "filterCategoryBadges",
+                    );
+
+                    createDropdown.innerHTML =
+                        '<option value="">Unassigned</option>';
+                    badgeContainer.innerHTML = "";
+
+                    data.forEach((cat) => {
+                        categoryCache[cat.id] = cat.name;
+
+                        const opt = document.createElement("option");
+                        opt.value = cat.id;
+                        opt.textContent = cat.name;
+                        createDropdown.appendChild(opt);
+
+                        const badge = document.createElement("div");
+                        badge.className = `filter-badge ${selectedFilterCategoryIds.has(cat.id) ? "active" : ""}`;
+                        badge.innerHTML = `<span class="check-mark">✓ </span>${cat.name}`;
+
+                        badge.onclick = () => {
+                            if (selectedFilterCategoryIds.has(cat.id)) {
+                                selectedFilterCategoryIds.delete(cat.id);
+                                badge.classList.remove("active");
+                            } else {
+                                selectedFilterCategoryIds.add(cat.id);
+                                badge.classList.add("active");
+                            }
+                            loadExpenses();
+                        };
+                        badgeContainer.appendChild(badge);
+                    });
+                }
+            }
+
+            function processDatasetMetrics(dataset) {
+                currentExpensesDataset = dataset || [];
+
+                let totalAllTime = 0;
+                let totalMonth = 0;
+                let totalWeek = 0;
+                const categoryWeights = {};
+
+                const now = new Date();
+                const cleanNow = now.getTime();
+                const sevenDaysAgo = cleanNow - 7 * 24 * 60 * 60 * 1000;
+
+                let targetMonthStart = new Date(
+                    now.getFullYear(),
+                    now.getMonth(),
+                    cachedMonthStart,
+                );
+                if (now.getDate() < cachedMonthStart) {
+                    targetMonthStart.setMonth(targetMonthStart.getMonth() - 1);
+                }
+
+                currentExpensesDataset.forEach((exp) => {
+                    const amt = Number(exp.amount) || 0;
+                    totalAllTime += amt;
+
+                    const expDate = exp.date ? new Date(exp.date) : null;
+                    if (expDate) {
+                        const expTime = expDate.getTime();
+                        if (expTime >= sevenDaysAgo && expTime <= cleanNow) {
+                            totalWeek += amt;
+                        }
+                        if (
+                            expTime >= targetMonthStart.getTime() &&
+                            expTime <= cleanNow
+                        ) {
+                            totalMonth += amt;
+                        }
+                    }
+
+                    const catName =
+                        categoryCache[exp.categoryId] || "Unassigned";
+                    categoryWeights[catName] =
+                        (categoryWeights[catName] || 0) + amt;
+                });
+
+                let highestDriver = "—";
+                let maxWeight = 0;
+                for (const [cat, val] of Object.entries(categoryWeights)) {
+                    if (val > maxWeight) {
+                        maxWeight = val;
+                        highestDriver = `${cat} (${val.toFixed(2)})`;
+                    }
+                }
+
+                document.getElementById("metricTotal").textContent =
+                    totalAllTime.toFixed(2);
+                document.getElementById("metricMonth").textContent =
+                    totalMonth.toFixed(2);
+                document.getElementById("metricWeek").textContent =
+                    totalWeek.toFixed(2);
+                document.getElementById("metricHeavyweight").textContent =
+                    highestDriver;
+            }
+
+            async function loadExpenses() {
+                if (Object.keys(categoryCache).length === 0) {
+                    await syncCategoryCache();
+                }
+
+                // Initialize flat query parameter container
+                const params = new URLSearchParams();
+
+                // Amount parameters
+                const min = document.getElementById("filterMinAmount").value;
+                const max = document.getElementById("filterMaxAmount").value;
+                if (min || max)
+                    params.append("amount", `${min || ""},${max || ""}`);
+
+                // Date parameters
+                const from = document.getElementById("filterFromDate").value;
+                const to = document.getElementById("filterToDate").value;
+                if (from || to)
+                    params.append("date", `${from || ""},${to || ""}`);
+
+                // Keyword parameter
+                const note = document.getElementById("filterNote").value;
+                if (note) params.append("additionalNote", note.trim());
+
+                // Category mappings (Append multiple keys if your backend handles array casting, e.g., ?category=1&category=2)
+                if (selectedFilterCategoryIds.size > 0) {
+                    params.append(
+                        "category",
+                        Array.from(selectedFilterCategoryIds).join(","),
+                    );
+                }
+
+                // Build flat URL-encoded string: e.g., /expenses?minAmount=10&fromDate=2026-01-01
+                const queryString = params.toString();
+                const data = await request(
+                    "/expenses" + (queryString ? "?" + queryString : ""),
+                );
+
+                const tbody = document.getElementById("expensesTableBody");
+                tbody.innerHTML = "";
+
+                const dataset = data || [];
+                dataset.forEach((exp) => {
+                    const tr = document.createElement("tr");
+                    const isEditing = editingExpenseId === exp.id;
+                    const cleanDate = exp.date ? exp.date.split("T")[0] : "";
+
+                    if (isEditing) {
+                        let catOptionsHtml = `<option value="">Unassigned</option>`;
+                        Object.entries(categoryCache).forEach(([id, name]) => {
+                            catOptionsHtml += `<option value="${id}" ${Number(id) === exp.categoryId ? "selected" : ""}>${name}</option>`;
+                        });
+
+                        tr.innerHTML = `
+                            <td class="id-badge">#${exp.id}</td>
+                            <td><input type="number" step="0.01" class="table-input" id="edit-amount-${exp.id}" value="${exp.amount}"></td>
+                            <td><input type="text" class="table-input" id="edit-note-${exp.id}" value="${exp.additionalNote || ""}"></td>
+                            <td><select class="table-input" id="edit-cat-${exp.id}">${catOptionsHtml}</select></td>
+                            <td><input type="date" class="table-input" id="edit-date-${exp.id}" value="${cleanDate}"></td>
+                            <td style="text-align: right; display: flex; gap: 4px; justify-content: flex-end;">
+                                <button class="action-link" style="color: var(--success);" onclick="saveExpenseUpdate(${exp.id})">Save</button>
+                                <button class="action-link" onclick="cancelExpenseEdit()">X</button>
+                            </td>
+                        `;
+                    } else {
+                        const categoryName =
+                            categoryCache[exp.categoryId] ||
+                            exp.categoryId ||
+                            "Unassigned";
+                        tr.innerHTML = `
+                            <td class="id-badge">#${exp.id}</td>
+                            <td class="amount-text">${Number(exp.amount).toFixed(2)}</td>
+                            <td>${exp.additionalNote || "—"}</td>
+                            <td>${categoryName}</td>
+                            <td>${cleanDate || "—"}</td>
+                            <td style="text-align: right;">
+                                <button class="action-link" onclick="enterExpenseEditMode(${exp.id})">Edit</button>
+                                <button class="danger-action" onclick="deleteExpense(${exp.id})">Drop</button>
+                            </td>
+                        `;
+                    }
+                    tbody.appendChild(tr);
+                });
+
+                processDatasetMetrics(dataset);
+            }
+
+            function enterExpenseEditMode(id) {
+                editingExpenseId = id;
+                loadExpenses();
+            }
+
+            function cancelExpenseEdit() {
+                editingExpenseId = null;
+                loadExpenses();
+            }
+
+            async function saveExpenseUpdate(id) {
+                const amtInput = document.getElementById(
+                    `edit-amount-${id}`,
+                ).value;
+                const noteInput = document.getElementById(
+                    `edit-note-${id}`,
+                ).value;
+                const catInput = document.getElementById(
+                    `edit-cat-${id}`,
+                ).value;
+                const dateInput = document.getElementById(
+                    `edit-date-${id}`,
+                ).value;
+
+                if (!amtInput || Number(amtInput) <= 0)
+                    return alert("Valid configuration amount required.");
+
+                const body = {
+                    amount: Number(amtInput),
+                    additionalNote: noteInput ? noteInput.trim() : null,
+                    categoryId: catInput ? Number(catInput) : null,
+                    date: dateInput ? dateInput : null,
+                };
+
+                await request(`/expenses/${id}`, {
+                    method: "PUT",
+                    body: JSON.stringify(body),
+                });
+
+                editingExpenseId = null;
+                loadExpenses();
+            }
+
+            async function createExpense() {
+                const amount = Number(document.getElementById("amount").value);
+                const additionalNote = document.getElementById("note").value;
+                const categoryId = document.getElementById("catId").value;
+                const date = document.getElementById("expDate").value;
+
+                if (!amount) return alert("Amount configuration error.");
+
+                const body = { amount };
+                if (additionalNote) body.additionalNote = additionalNote;
+                if (categoryId) body.categoryId = Number(categoryId);
+                if (date) body.date = date;
+
+                await request("/expenses", {
+                    method: "POST",
+                    body: JSON.stringify(body),
+                });
+
+                document.getElementById("amount").value = "";
+                document.getElementById("note").value = "";
+
+                toggleExpenseModal(false);
+                loadExpenses();
+            }
+
+            async function deleteExpense(id) {
+                await request("/expenses/" + id, { method: "DELETE" });
+                loadExpenses();
+            }
+
+            function exportData(format) {
+                if (
+                    !currentExpensesDataset ||
+                    currentExpensesDataset.length === 0
+                ) {
+                    return alert("Empty sequence context.");
+                }
+
+                let dataString = "";
+                let mimeType = "text/plain";
+                let filename = `expense_matrix_export_${new Date().toISOString().split("T")[0]}`;
+
+                if (format === "json") {
+                    dataString = JSON.stringify(
+                        currentExpensesDataset,
+                        null,
+                        2,
+                    );
+                    mimeType = "application/json";
+                    filename += ".json";
+                } else if (format === "csv") {
+                    const headers = [
+                        "ID",
+                        "Amount",
+                        "Note",
+                        "Category",
+                        "Date",
+                    ];
+                    const rows = currentExpensesDataset.map((exp) => [
+                        exp.id,
+                        exp.amount,
+                        `"${(exp.additionalNote || "").replace(/"/g, '""')}"`,
+                        `"${categoryCache[exp.categoryId] || exp.categoryId || "Unassigned"}"`,
+                        exp.date ? exp.date.split("T")[0] : "",
+                    ]);
+                    dataString = [
+                        headers.join(","),
+                        ...rows.map((r) => r.join(",")),
+                    ].join("\n");
+                    mimeType = "text/csv";
+                    filename += ".csv";
+                }
+
+                const blob = new Blob([dataString], { type: mimeType });
+                const link = document.createElement("a");
+                link.href = URL.createObjectURL(blob);
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+
+            async function loadCategories() {
+                const nameFilter =
+                    document.getElementById("filterCatName").value;
+                const queryString = nameFilter
+                    ? new URLSearchParams({ name: nameFilter }).toString()
+                    : "";
+
+                const data = await request("/categories?" + queryString);
+                const container = document.getElementById("categories");
+                container.innerHTML = "";
+
+                (data || []).forEach((cat) => {
+                    const div = document.createElement("div");
+                    div.className = "category-item";
+                    div.innerHTML = `
+                        <input id="cat-input-${cat.id}" value="${cat.name}" placeholder="Category name">
+                        <button class="action-link" onclick="updateCategory(${cat.id})">Update</button>
+                        <button class="danger-action" onclick="deleteCategory(${cat.id})">Drop</button>
+                    `;
+                    container.appendChild(div);
+                });
+
+                await syncCategoryCache();
+            }
+
+            async function createCategory() {
+                const input = document.getElementById("categoryName");
+                if (!input.value.trim()) return;
+
+                await request("/categories", {
+                    method: "POST",
+                    body: JSON.stringify({ name: input.value }),
+                });
+
+                input.value = "";
+                await loadCategories();
+                loadExpenses();
+            }
+
+            async function updateCategory(id) {
+                const inputField = document.getElementById(`cat-input-${id}`);
+                if (!inputField || !inputField.value.trim())
+                    return alert("Name field cannot be blank.");
+
+                await request(`/categories/${id}`, {
+                    method: "PUT",
+                    body: JSON.stringify({ name: inputField.value.trim() }),
+                });
+
+                await syncCategoryCache();
+                loadCategories();
+                loadExpenses();
+            }
+
+            async function deleteCategory(id) {
+                await request("/categories/" + id, { method: "DELETE" });
+                selectedFilterCategoryIds.delete(id);
+                await loadCategories();
+                loadExpenses();
+            }
+
+            function flagSettingsDirty() {
+                const indicator = document.getElementById("settingsStatus");
+                const saveBtn = document.getElementById("btnSaveSettings");
+                indicator.className = "status-indicator";
+                saveBtn.style.display = "inline-block";
+            }
+
+            async function loadSettings() {
+                const data = await request("/settings");
+                const indicator = document.getElementById("settingsStatus");
+                const saveBtn = document.getElementById("btnSaveSettings");
+
+                if (data) {
+                    cachedMonthStart = data.monthStart ?? 1;
+                    cachedSpendingGoal = data.spendingGoal ?? 0;
+
+                    document.getElementById("monthStart").value =
+                        cachedMonthStart;
+                    document.getElementById("spendingGoal").value =
+                        cachedSpendingGoal;
+
+                    indicator.className = "status-indicator synced";
+                    saveBtn.style.display = "none";
+                }
+            }
+
+            async function saveSettings() {
+                const mStartVal =
+                    Number(document.getElementById("monthStart").value) || 1;
+                const sGoalVal =
+                    Number(document.getElementById("spendingGoal").value) || 0;
+
+                await request("/settings", {
+                    method: "PUT",
+                    body: JSON.stringify({
+                        monthStart: mStartVal,
+                        spendingGoal: sGoalVal,
+                    }),
+                });
+                await loadSettings();
+                processDatasetMetrics(currentExpensesDataset);
+            }
+
+            /* DEEP ANALYTICS MATRIX SYSTEM MODULES */
+            function toggleAnalyticsModal(open) {
+                const modal = document.getElementById("analyticsModal");
+                if (open) {
+                    modal.classList.add("active");
+                    document.getElementById("modalSpendingGoal").value =
+                        cachedSpendingGoal;
+                    syncModalFilterDropdowns();
+                    runDeepAnalyticsEngine();
+                } else {
+                    modal.classList.remove("active");
+                }
+            }
+
+            function openAnalyticsModal() {
+                toggleAnalyticsModal(true);
+            }
+
+            function syncModalFilterDropdowns() {
+                const select = document.getElementById("modalFilterCategory");
+                const currentVal = select.value;
+                select.innerHTML =
+                    '<option value="ALL">All Categories</option>';
+
+                Object.entries(categoryCache).forEach(([id, name]) => {
+                    const opt = document.createElement("option");
+                    opt.value = id;
+                    opt.textContent = name;
+                    if (id === currentVal) opt.selected = true;
+                    select.appendChild(opt);
+                });
+            }
+
+            function resetModalFilters() {
+                document.getElementById("modalFilterKeyword").value = "";
+                document.getElementById("modalFilterCategory").value = "ALL";
+                document.getElementById("modalFilterMinAmount").value = "";
+                document.getElementById("modalSpendingGoal").value =
+                    cachedSpendingGoal;
+                runDeepAnalyticsEngine();
+            }
+
+            function computeCustomBillingCycleKey(dateStr, anchorDay) {
+                if (!dateStr) return "Undated Engine Streams";
+                const d = new Date(dateStr);
+                if (isNaN(d.getTime())) return "Undated Engine Streams";
+
+                let year = d.getFullYear();
+                let month = d.getMonth();
+
+                if (d.getDate() < anchorDay) {
+                    month -= 1;
+                    if (month < 0) {
+                        month = 11;
+                        year -= 1;
+                    }
+                }
+
+                const monthNames = [
+                    "Jan",
+                    "Feb",
+                    "Mar",
+                    "Apr",
+                    "May",
+                    "Jun",
+                    "Jul",
+                    "Aug",
+                    "Sep",
+                    "Oct",
+                    "Nov",
+                    "Dec",
+                ];
+                return `${monthNames[month]} ${year}`;
+            }
+
+            function runDeepAnalyticsEngine() {
+                const tbody = document.getElementById("analyticsTableBody");
+                const mBody = document.getElementById(
+                    "analyticsMonthRankTableBody",
+                );
+
+                if (
+                    !currentExpensesDataset ||
+                    currentExpensesDataset.length === 0
+                ) {
+                    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-secondary);">No streams available.</td></tr>`;
+                    mBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-secondary);">No historical records downlinked.</td></tr>`;
+                    return;
+                }
+
+                const keywordFilter = document
+                    .getElementById("modalFilterKeyword")
+                    .value.toLowerCase()
+                    .trim();
+                const categoryFilter = document.getElementById(
+                    "modalFilterCategory",
+                ).value;
+                const minAmountFilter =
+                    Number(
+                        document.getElementById("modalFilterMinAmount").value,
+                    ) || 0;
+                const targetGoalConfig =
+                    Number(
+                        document.getElementById("modalSpendingGoal").value,
+                    ) || 0;
+
+                const catMetrics = {};
+                const historicalCycles = {};
+                const dailyVelocity = {};
+                let maxSingleTransaction = {
+                    amount: 0,
+                    note: "—",
+                    category: "—",
+                    date: "—",
+                };
+                let matchingValidCount = 0;
+
+                currentExpensesDataset.forEach((exp) => {
+                    const amt = Number(exp.amount) || 0;
+                    const catIdStr = String(exp.categoryId || "");
+                    const catName =
+                        categoryCache[exp.categoryId] || "Unassigned";
+                    const cleanDate = exp.date
+                        ? exp.date.split("T")[0]
+                        : "Undated";
+                    const noteText = (exp.additionalNote || "").toLowerCase();
+
+                    if (minAmountFilter > 0 && amt < minAmountFilter) return;
+                    if (categoryFilter !== "ALL" && catIdStr !== categoryFilter)
+                        return;
+                    if (keywordFilter && !noteText.includes(keywordFilter))
+                        return;
+
+                    matchingValidCount++;
+
+                    if (!catMetrics[catName]) {
+                        catMetrics[catName] = {
+                            total: 0,
+                            count: 0,
+                            rawAmounts: [],
+                        };
+                    }
+                    catMetrics[catName].total += amt;
+                    catMetrics[catName].count += 1;
+                    catMetrics[catName].rawAmounts.push(amt);
+
+                    const cyclePeriodKey = computeCustomBillingCycleKey(
+                        exp.date,
+                        cachedMonthStart,
+                    );
+                    if (!historicalCycles[cyclePeriodKey]) {
+                        historicalCycles[cyclePeriodKey] = {
+                            total: 0,
+                            count: 0,
+                            categories: {},
+                        };
+                    }
+                    historicalCycles[cyclePeriodKey].total += amt;
+                    historicalCycles[cyclePeriodKey].count += 1;
+                    historicalCycles[cyclePeriodKey].categories[catName] =
+                        (historicalCycles[cyclePeriodKey].categories[catName] ||
+                            0) + amt;
+
+                    dailyVelocity[cleanDate] =
+                        (dailyVelocity[cleanDate] || 0) + amt;
+
+                    if (amt > maxSingleTransaction.amount) {
+                        maxSingleTransaction = {
+                            amount: amt,
+                            note:
+                                exp.additionalNote ||
+                                "Unmarked context metadata",
+                            category: catName,
+                            date: cleanDate,
+                        };
+                    }
+                });
+
+                if (matchingValidCount === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-secondary);">No metrics intersected active runtime queries.</td></tr>`;
+                    mBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-secondary);">Clear input query params.</td></tr>`;
+                    renderInternalDonutChart({}, 0);
+                    return;
+                }
+
+                const filteredPipelineTotalSum = Object.values(
+                    catMetrics,
+                ).reduce((acc, c) => acc + c.total, 0);
+
+                mBody.innerHTML = "";
+                Object.entries(historicalCycles)
+                    .sort((a, b) => b[1].total - a[1].total)
+                    .forEach(([cycleName, meta], index) => {
+                        let highestMonthDriver = "—";
+                        let highestMonthDriverAmt = 0;
+                        Object.entries(meta.categories).forEach(
+                            ([cName, cAmt]) => {
+                                if (cAmt > highestMonthDriverAmt) {
+                                    highestMonthDriverAmt = cAmt;
+                                    highestMonthDriver = cName;
+                                }
+                            },
+                        );
+
+                        let trackingBadgeHtml = `<span style="color:var(--text-secondary); font-size:0.75rem;">—</span>`;
+                        if (targetGoalConfig > 0) {
+                            const limitUtilizationRatio =
+                                meta.total / targetGoalConfig;
+                            if (limitUtilizationRatio >= 1.0) {
+                                trackingBadgeHtml = `<span style="background:rgba(235,87,87,0.15); color:#eb5757; padding:2px 6px; border-radius:4px; font-size:0.7rem; font-weight:bold; border:1px solid rgba(235,87,87,0.3);">Critical Tier</span>`;
+                            } else if (limitUtilizationRatio >= 0.85) {
+                                trackingBadgeHtml = `<span style="background:rgba(242,201,76,0.15); color:#f2c94c; padding:2px 6px; border-radius:4px; font-size:0.7rem; font-weight:bold; border:1px solid rgba(242,201,76,0.3);">Warning Tier</span>`;
+                            } else {
+                                trackingBadgeHtml = `<span style="background:rgba(39,174,96,0.15); color:#27ae60; padding:2px 6px; border-radius:4px; font-size:0.7rem; font-weight:bold; border:1px solid rgba(39,174,96,0.3);">Safe Scope</span>`;
+                            }
+                        }
+
+                        const mTr = document.createElement("tr");
+                        mTr.innerHTML = `
+                            <td style="font-family:monospace; font-weight:700; color:var(--text-secondary);">#${index + 1}</td>
+                            <td style="font-weight:600; color:var(--text-primary);">${cycleName}</td>
+                            <td class="amount-text" style="color:var(--accent);">$${meta.total.toFixed(2)}</td>
+                            <td>${trackingBadgeHtml}</td>
+                            <td style="font-size:0.8rem;">${highestMonthDriver} <span style="color:var(--text-secondary); font-size:0.75rem;">($${highestMonthDriverAmt.toFixed(0)})</span></td>
+                            <td style="font-family:monospace; color:var(--text-secondary);">${meta.count} units</td>
+                        `;
+                        mBody.appendChild(mTr);
+                    });
+
+                tbody.innerHTML = "";
+                Object.entries(catMetrics)
+                    .sort((a, b) => b[1].total - a[1].total)
+                    .forEach(([name, meta]) => {
+                        const share =
+                            filteredPipelineTotalSum > 0
+                                ? (
+                                      (meta.total / filteredPipelineTotalSum) *
+                                      100
+                                  ).toFixed(1)
+                                : 0;
+                        const mean =
+                            meta.count > 0
+                                ? (meta.total / meta.count).toFixed(2)
+                                : 0;
+
+                        const tr = document.createElement("tr");
+                        tr.innerHTML = `
+                            <td style="font-weight:600; color:var(--text-primary);">${name}</td>
+                            <td class="amount-text">${meta.total.toFixed(2)}</td>
+                            <td style="color:var(--accent); font-family:monospace;">${share}%</td>
+                            <td class="amount-text" style="color:var(--text-secondary);">${mean}</td>
+                            <td style="font-family:monospace;">${meta.count} hits</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+
+                const outliersDiv =
+                    document.getElementById("analyticsOutliers");
+                if (maxSingleTransaction.amount > 0) {
+                    outliersDiv.innerHTML = `
+                        <div style="font-size:1.1rem; font-weight:700; font-family:monospace; margin-bottom:2px;">$${maxSingleTransaction.amount.toFixed(2)}</div>
+                        <div style="font-size:0.8rem; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><span style="color:var(--text-secondary);">Target:</span> ${maxSingleTransaction.note}</div>
+                        <div style="font-size:0.75rem; color:var(--text-secondary); display:flex; gap:12px; margin-top:2px;">
+                            <span>Sector: <b>${maxSingleTransaction.category}</b></span>
+                            <span>Date: <b>${maxSingleTransaction.date}</b></span>
+                        </div>
+                    `;
+                } else {
+                    outliersDiv.innerHTML = `<div style="color:var(--text-secondary); font-size:0.8rem;">No entries match criteria parameters.</div>`;
+                }
+
+                let peakDay = "—";
+                let peakDayVolume = 0;
+                Object.entries(dailyVelocity).forEach(([day, vol]) => {
+                    if (vol > peakDayVolume) {
+                        peakDayVolume = vol;
+                        peakDay = day;
+                    }
+                });
+
+                const temporalDiv =
+                    document.getElementById("analyticsTemporal");
+                if (peakDayVolume > 0) {
+                    temporalDiv.innerHTML = `
+                        <div style="font-size:1.1rem; font-weight:700; font-family:monospace; margin-bottom:2px; color:var(--success);">${peakDay}</div>
+                        <div style="font-size:0.8rem; color:var(--text-primary);"><span style="color:var(--text-secondary);">Single Day Cap:</span> $${peakDayVolume.toFixed(2)}</div>
+                        <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:2px;">Calculated system spike bound</div>
+                    `;
+                } else {
+                    temporalDiv.innerHTML = `<div style="color:var(--text-secondary); font-size:0.8rem;">No time bounds tracked.</div>`;
+                }
+
+                renderInternalDonutChart(catMetrics, filteredPipelineTotalSum);
+            }
+
+            function renderInternalDonutChart(catMetrics, totalSum) {
+                const canvas = document.getElementById("analyticsChartCanvas");
+                if (!canvas) return;
+                const ctx = canvas.getContext("2d");
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                const sortedCats = Object.entries(catMetrics).sort(
+                    (a, b) => b[1].total - a[1].total,
+                );
+                if (totalSum === 0 || sortedCats.length === 0) return;
+
+                const centerX = 95;
+                const centerY = canvas.height / 2;
+                const radius = 70;
+                const innerRadius = 45;
+
+                const semanticColors = [
+                    "#2f80ed",
+                    "#27ae60",
+                    "#eb5757",
+                    "#f2c94c",
+                    "#9b51e0",
+                    "#56ccf2",
+                    "#aeaeae",
+                ];
+                let currentAngle = -Math.PI / 2;
+
+                sortedCats.forEach(([name, meta], index) => {
+                    const sliceAngle = (meta.total / totalSum) * (2 * Math.PI);
+                    const color = semanticColors[index % semanticColors.length];
+
+                    ctx.beginPath();
+                    ctx.arc(
+                        centerX,
+                        centerY,
+                        radius,
+                        currentAngle,
+                        currentAngle + sliceAngle,
+                    );
+                    ctx.arc(
+                        centerX,
+                        centerY,
+                        innerRadius,
+                        currentAngle + sliceAngle,
+                        currentAngle,
+                        true,
+                    );
+                    ctx.closePath();
+                    ctx.fillStyle = color;
+                    ctx.fill();
+
+                    const legendX = 185;
+                    const legendY = 25 + index * 20;
+
+                    if (legendY < canvas.height - 5) {
+                        ctx.fillStyle = color;
+                        ctx.fillRect(legendX, legendY - 9, 10, 10);
+
+                        ctx.fillStyle = "#f2f2f7";
+                        ctx.font =
+                            "bold 10px -apple-system, BlinkMacSystemFont, sans-serif";
+                        const printName =
+                            name.length > 10
+                                ? name.substring(0, 8) + ".."
+                                : name;
+                        ctx.fillText(printName, legendX + 15, legendY);
+
+                        ctx.fillStyle = "#aeaeae";
+                        ctx.font = "9px monospace";
+                        const percentageString =
+                            ((meta.total / totalSum) * 100).toFixed(0) + "%";
+                        ctx.fillText(percentageString, legendX + 80, legendY);
+                    }
+
+                    currentAngle += sliceAngle;
+                });
+
+                ctx.fillStyle = "#aeaeae";
+                ctx.font = "8px -apple-system, BlinkMacSystemFont, sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText("SCOPE SUM", centerX, centerY - 5);
+
+                ctx.fillStyle = "#f2f2f7";
+                ctx.font = "bold 12px monospace";
+                ctx.fillText(totalSum.toFixed(0), centerX, centerY + 8);
+                ctx.textAlign = "left";
+            }
+
+            window.addEventListener("DOMContentLoaded", async () => {
+                await syncCategoryCache();
+                await loadSettings();
+                await loadExpenses();
+                await loadCategories();
+            });
+        </script>
+    </body>
+</html>
