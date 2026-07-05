@@ -358,6 +358,7 @@
                 padding: 6px 12px;
                 border-radius: 20px;
                 cursor: pointer;
+                font-size: 0.8amp;
                 font-size: 0.8rem;
                 user-select: none;
                 transition: all 0.15s ease;
@@ -421,6 +422,27 @@
             .status-indicator.synced {
                 background: var(--success);
             }
+
+            .pagination-bar {
+                display: flex;
+                align-items: center;
+                justify-content: flex-end;
+                gap: 10px;
+                padding: 8px 2px 2px;
+            }
+            .pagination-bar .pagination-info {
+                font-size: 0.75rem;
+                color: var(--text-secondary);
+                font-family: monospace;
+            }
+            .pagination-bar button {
+                padding: 3px 12px;
+                font-size: 0.75rem;
+            }
+            .pagination-bar button:disabled {
+                opacity: 0.3;
+                cursor: not-allowed;
+            }
         </style>
     </head>
     <body>
@@ -478,8 +500,14 @@
 
                     <div class="metrics-row">
                         <div class="metric-card">
-                            <label>Total Pipeline Volume</label>
-                            <div id="metricTotal" class="metric-val">0.00</div>
+                            <label>Today's Volume</label>
+                            <div
+                                id="metricToday"
+                                class="metric-val"
+                                style="color: var(--accent)"
+                            >
+                                0.00
+                            </div>
                         </div>
                         <div class="metric-card">
                             <label>Current Month Target</label>
@@ -508,6 +536,7 @@
                     </div>
                 </div>
 
+                <!-- MAIN TRANSACTION STREAM -->
                 <div class="panel">
                     <div
                         style="
@@ -626,6 +655,38 @@
                             <tbody id="expensesTableBody"></tbody>
                         </table>
                     </div>
+                    <div id="expensesPaginationControls"></div>
+                </div>
+
+                <!-- PER-DAY VELOCITY MATRIX BLOCK -->
+                <div class="panel">
+                    <h2>Daily Analytics Distribution Matrix</h2>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Calendar Date</th>
+                                    <th>Daily Volume Outflow</th>
+                                    <th>Transaction Hits</th>
+                                    <th>Mean Value Track</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dailyAnalyticsTableBody">
+                                <tr>
+                                    <td
+                                        colspan="4"
+                                        style="
+                                            text-align: center;
+                                            color: var(--text-secondary);
+                                        "
+                                    >
+                                        No daily runtime traces compiled.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="dailyPaginationControls"></div>
                 </div>
             </div>
 
@@ -946,8 +1007,6 @@
                                     background: var(--bg-element);
                                     border: 1px solid var(--border);
                                     border-radius: 6px;
-                                    max-height: 280px;
-                                    overflow-y: auto;
                                 "
                             >
                                 <table>
@@ -966,6 +1025,7 @@
                                     ></tbody>
                                 </table>
                             </div>
+                            <div id="monthRankPaginationControls"></div>
                         </div>
                     </div>
 
@@ -1057,8 +1117,6 @@
                 <div
                     class="table-wrapper"
                     style="
-                        max-height: 180px;
-                        overflow-y: auto;
                         background: var(--bg-element);
                         border: 1px solid var(--border);
                         border-radius: 6px;
@@ -1077,6 +1135,7 @@
                         <tbody id="analyticsTableBody"></tbody>
                     </table>
                 </div>
+                <div id="analyticsCatPaginationControls"></div>
 
                 <div
                     style="
@@ -1104,9 +1163,96 @@
             let selectedFilterCategoryIds = new Set();
             let editingExpenseId = null;
 
-            // Global settings caching variables
             let cachedMonthStart = 1;
             let cachedSpendingGoal = 0;
+
+            // ── Paginator ──────────────────────────────────────────────────
+            class TablePaginator {
+                constructor(tbodyId, controlsId, pageSize, globalRef) {
+                    this.tbodyId = tbodyId;
+                    this.controlsId = controlsId;
+                    this.pageSize = pageSize;
+                    this.globalRef = globalRef;
+                    this.currentPage = 1;
+                    this.items = [];
+                    this._renderRowFn = null;
+                }
+                setData(items, renderRowFn, startPage = 1) {
+                    this.items = items;
+                    this._renderRowFn = renderRowFn;
+                    this.currentPage = Math.max(1, startPage);
+                    this._render();
+                }
+                goTo(page) {
+                    const max = Math.max(
+                        1,
+                        Math.ceil(this.items.length / this.pageSize),
+                    );
+                    this.currentPage = Math.max(1, Math.min(page, max));
+                    this._render();
+                }
+                _render() {
+                    const tbody = document.getElementById(this.tbodyId);
+                    const ctrl = document.getElementById(this.controlsId);
+                    if (!tbody) return;
+                    const total = this.items.length;
+                    if (total === 0) {
+                        if (ctrl) ctrl.innerHTML = "";
+                        return;
+                    }
+                    const maxPage = Math.ceil(total / this.pageSize);
+                    this.currentPage = Math.min(this.currentPage, maxPage);
+                    const start = (this.currentPage - 1) * this.pageSize;
+                    const end = Math.min(start + this.pageSize, total);
+                    tbody.innerHTML = "";
+                    this.items.slice(start, end).forEach((item, i) => {
+                        const tr = this._renderRowFn(item, start + i);
+                        if (tr) tbody.appendChild(tr);
+                    });
+                    if (ctrl) {
+                        if (maxPage <= 1) {
+                            ctrl.innerHTML = "";
+                            return;
+                        }
+                        ctrl.innerHTML = `
+                                            <div class="pagination-bar">
+                                                <button class="secondary" onclick="${this.globalRef}.goTo(${this.currentPage - 1})" ${this.currentPage <= 1 ? "disabled" : ""}>&#8249; Prev</button>
+                                                <span class="pagination-info">Page ${this.currentPage} / ${maxPage} &nbsp;&middot;&nbsp; ${start + 1}&ndash;${end} of ${total}</span>
+                                                <button class="secondary" onclick="${this.globalRef}.goTo(${this.currentPage + 1})" ${this.currentPage >= maxPage ? "disabled" : ""}>Next &#8250;</button>
+                                            </div>`;
+                    }
+                }
+            }
+
+            const EXPENSE_PAGE_SIZE = 25;
+            const DAILY_PAGE_SIZE = 30;
+            const MONTH_RANK_PAGE_SIZE = 25;
+            const CAT_BREAKDOWN_PAGE_SIZE = 25;
+
+            const expensesPaginator = new TablePaginator(
+                "expensesTableBody",
+                "expensesPaginationControls",
+                EXPENSE_PAGE_SIZE,
+                "expensesPaginator",
+            );
+            const dailyPaginator = new TablePaginator(
+                "dailyAnalyticsTableBody",
+                "dailyPaginationControls",
+                DAILY_PAGE_SIZE,
+                "dailyPaginator",
+            );
+            const monthRankPaginator = new TablePaginator(
+                "analyticsMonthRankTableBody",
+                "monthRankPaginationControls",
+                MONTH_RANK_PAGE_SIZE,
+                "monthRankPaginator",
+            );
+            const catBreakdownPaginator = new TablePaginator(
+                "analyticsTableBody",
+                "analyticsCatPaginationControls",
+                CAT_BREAKDOWN_PAGE_SIZE,
+                "catBreakdownPaginator",
+            );
 
             function url(path) {
                 return document.getElementById("baseUrl").value + path;
@@ -1194,14 +1340,17 @@
             function processDatasetMetrics(dataset) {
                 currentExpensesDataset = dataset || [];
 
-                let totalAllTime = 0;
+                let totalToday = 0;
                 let totalMonth = 0;
                 let totalWeek = 0;
                 const categoryWeights = {};
+                const dailyMap = {};
 
                 const now = new Date();
                 const cleanNow = now.getTime();
                 const sevenDaysAgo = cleanNow - 7 * 24 * 60 * 60 * 1000;
+
+                const localTodayString = now.toISOString().split("T")[0];
 
                 let targetMonthStart = new Date(
                     now.getFullYear(),
@@ -1214,9 +1363,23 @@
 
                 currentExpensesDataset.forEach((exp) => {
                     const amt = Number(exp.amount) || 0;
-                    totalAllTime += amt;
-
                     const expDate = exp.date ? new Date(exp.date) : null;
+                    const cleanDateStr = exp.date
+                        ? exp.date.split("T")[0]
+                        : null;
+
+                    if (cleanDateStr) {
+                        if (!dailyMap[cleanDateStr]) {
+                            dailyMap[cleanDateStr] = { volume: 0, count: 0 };
+                        }
+                        dailyMap[cleanDateStr].volume += amt;
+                        dailyMap[cleanDateStr].count += 1;
+
+                        if (cleanDateStr === localTodayString) {
+                            totalToday += amt;
+                        }
+                    }
+
                     if (expDate) {
                         const expTime = expDate.getTime();
                         if (expTime >= sevenDaysAgo && expTime <= cleanNow) {
@@ -1245,14 +1408,89 @@
                     }
                 }
 
-                document.getElementById("metricTotal").textContent =
-                    totalAllTime.toFixed(2);
+                document.getElementById("metricToday").textContent =
+                    totalToday.toFixed(2);
                 document.getElementById("metricMonth").textContent =
                     totalMonth.toFixed(2);
                 document.getElementById("metricWeek").textContent =
                     totalWeek.toFixed(2);
                 document.getElementById("metricHeavyweight").textContent =
                     highestDriver;
+
+                renderPerDayAnalyticsTable(dailyMap);
+            }
+
+            function renderPerDayAnalyticsTable(dailyMap) {
+                const tbody = document.getElementById(
+                    "dailyAnalyticsTableBody",
+                );
+                const sortedDays = Object.keys(dailyMap).sort(
+                    (a, b) => new Date(b) - new Date(a),
+                );
+
+                if (sortedDays.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-secondary)">No daily runtime traces compiled.</td></tr>`;
+                    document.getElementById(
+                        "dailyPaginationControls",
+                    ).innerHTML = "";
+                    return;
+                }
+
+                const items = sortedDays.map((day) => ({
+                    day,
+                    data: dailyMap[day],
+                }));
+                dailyPaginator.setData(items, ({ day, data }) => {
+                    const mean =
+                        data.count > 0
+                            ? (data.volume / data.count).toFixed(2)
+                            : "0.00";
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                                        <td style="font-weight:600; font-family:monospace;">${day}</td>
+                                        <td class="amount-text" style="color:var(--text-primary);">$${data.volume.toFixed(2)}</td>
+                                        <td style="color:var(--text-secondary); font-family:monospace;">${data.count} hits</td>
+                                        <td class="amount-text" style="color:var(--accent);">$${mean}</td>`;
+                    return tr;
+                });
+            }
+
+            function _renderExpenseRow(exp) {
+                const tr = document.createElement("tr");
+                const isEditing = editingExpenseId === exp.id;
+                const cleanDate = exp.date ? exp.date.split("T")[0] : "";
+                if (isEditing) {
+                    let catOptionsHtml = `<option value="">Unassigned</option>`;
+                    Object.entries(categoryCache).forEach(([id, name]) => {
+                        catOptionsHtml += `<option value="${id}" ${Number(id) === exp.categoryId ? "selected" : ""}>${name}</option>`;
+                    });
+                    tr.innerHTML = `
+                                        <td class="id-badge">#${exp.id}</td>
+                                        <td><input type="number" step="0.01" class="table-input" id="edit-amount-${exp.id}" value="${exp.amount}"></td>
+                                        <td><input type="text" class="table-input" id="edit-note-${exp.id}" value="${exp.additionalNote || ""}"></td>
+                                        <td><select class="table-input" id="edit-cat-${exp.id}">${catOptionsHtml}</select></td>
+                                        <td><input type="date" class="table-input" id="edit-date-${exp.id}" value="${cleanDate}"></td>
+                                        <td style="text-align:right; display:flex; gap:4px; justify-content:flex-end;">
+                                            <button class="action-link" style="color:var(--success);" onclick="saveExpenseUpdate(${exp.id})">Save</button>
+                                            <button class="action-link" onclick="cancelExpenseEdit()">X</button>
+                                        </td>`;
+                } else {
+                    const categoryName =
+                        categoryCache[exp.categoryId] ||
+                        exp.categoryId ||
+                        "Unassigned";
+                    tr.innerHTML = `
+                                        <td class="id-badge">#${exp.id}</td>
+                                        <td class="amount-text">${Number(exp.amount).toFixed(2)}</td>
+                                        <td>${exp.additionalNote || "—"}</td>
+                                        <td>${categoryName}</td>
+                                        <td>${cleanDate || "—"}</td>
+                                        <td style="text-align:right;">
+                                            <button class="action-link" onclick="enterExpenseEditMode(${exp.id})">Edit</button>
+                                            <button class="danger-action" onclick="deleteExpense(${exp.id})">Drop</button>
+                                        </td>`;
+                }
+                return tr;
             }
 
             async function loadExpenses() {
@@ -1260,84 +1498,55 @@
                     await syncCategoryCache();
                 }
 
-                // Initialize flat query parameter container
                 const params = new URLSearchParams();
 
-                // Amount parameters
                 const min = document.getElementById("filterMinAmount").value;
                 const max = document.getElementById("filterMaxAmount").value;
-                if (min || max)
-                    params.append("amount", `${min || ""},${max || ""}`);
+                if (min) params.append("minAmount", min);
+                if (max) params.append("maxAmount", max);
 
-                // Date parameters
                 const from = document.getElementById("filterFromDate").value;
                 const to = document.getElementById("filterToDate").value;
-                if (from || to)
-                    params.append("date", `${from || ""},${to || ""}`);
+                if (from) params.append("fromDate", from);
+                if (to) params.append("toDate", to);
 
-                // Keyword parameter
                 const note = document.getElementById("filterNote").value;
                 if (note) params.append("additionalNote", note.trim());
 
-                // Category mappings (Append multiple keys if your backend handles array casting, e.g., ?category=1&category=2)
                 if (selectedFilterCategoryIds.size > 0) {
-                    params.append(
-                        "category",
-                        Array.from(selectedFilterCategoryIds).join(","),
+                    selectedFilterCategoryIds.forEach((id) =>
+                        params.append("category", id),
                     );
                 }
 
-                // Build flat URL-encoded string: e.g., /expenses?minAmount=10&fromDate=2026-01-01
                 const queryString = params.toString();
                 const data = await request(
                     "/expenses" + (queryString ? "?" + queryString : ""),
                 );
-
-                const tbody = document.getElementById("expensesTableBody");
-                tbody.innerHTML = "";
-
                 const dataset = data || [];
-                dataset.forEach((exp) => {
-                    const tr = document.createElement("tr");
-                    const isEditing = editingExpenseId === exp.id;
-                    const cleanDate = exp.date ? exp.date.split("T")[0] : "";
 
-                    if (isEditing) {
-                        let catOptionsHtml = `<option value="">Unassigned</option>`;
-                        Object.entries(categoryCache).forEach(([id, name]) => {
-                            catOptionsHtml += `<option value="${id}" ${Number(id) === exp.categoryId ? "selected" : ""}>${name}</option>`;
-                        });
-
-                        tr.innerHTML = `
-                            <td class="id-badge">#${exp.id}</td>
-                            <td><input type="number" step="0.01" class="table-input" id="edit-amount-${exp.id}" value="${exp.amount}"></td>
-                            <td><input type="text" class="table-input" id="edit-note-${exp.id}" value="${exp.additionalNote || ""}"></td>
-                            <td><select class="table-input" id="edit-cat-${exp.id}">${catOptionsHtml}</select></td>
-                            <td><input type="date" class="table-input" id="edit-date-${exp.id}" value="${cleanDate}"></td>
-                            <td style="text-align: right; display: flex; gap: 4px; justify-content: flex-end;">
-                                <button class="action-link" style="color: var(--success);" onclick="saveExpenseUpdate(${exp.id})">Save</button>
-                                <button class="action-link" onclick="cancelExpenseEdit()">X</button>
-                            </td>
-                        `;
-                    } else {
-                        const categoryName =
-                            categoryCache[exp.categoryId] ||
-                            exp.categoryId ||
-                            "Unassigned";
-                        tr.innerHTML = `
-                            <td class="id-badge">#${exp.id}</td>
-                            <td class="amount-text">${Number(exp.amount).toFixed(2)}</td>
-                            <td>${exp.additionalNote || "—"}</td>
-                            <td>${categoryName}</td>
-                            <td>${cleanDate || "—"}</td>
-                            <td style="text-align: right;">
-                                <button class="action-link" onclick="enterExpenseEditMode(${exp.id})">Edit</button>
-                                <button class="danger-action" onclick="deleteExpense(${exp.id})">Drop</button>
-                            </td>
-                        `;
+                if (dataset.length === 0) {
+                    document.getElementById("expensesTableBody").innerHTML =
+                        `<tr><td colspan="6" style="text-align:center; color:var(--text-secondary);">No expenses found.</td></tr>`;
+                    document.getElementById(
+                        "expensesPaginationControls",
+                    ).innerHTML = "";
+                } else {
+                    // Navigate to the page containing the row being edited
+                    let startPage = 1;
+                    if (editingExpenseId !== null) {
+                        const idx = dataset.findIndex(
+                            (e) => e.id === editingExpenseId,
+                        );
+                        if (idx >= 0)
+                            startPage = Math.floor(idx / EXPENSE_PAGE_SIZE) + 1;
                     }
-                    tbody.appendChild(tr);
-                });
+                    expensesPaginator.setData(
+                        dataset,
+                        _renderExpenseRow,
+                        startPage,
+                    );
+                }
 
                 processDatasetMetrics(dataset);
             }
@@ -1482,10 +1691,10 @@
                     const div = document.createElement("div");
                     div.className = "category-item";
                     div.innerHTML = `
-                        <input id="cat-input-${cat.id}" value="${cat.name}" placeholder="Category name">
-                        <button class="action-link" onclick="updateCategory(${cat.id})">Update</button>
-                        <button class="danger-action" onclick="deleteCategory(${cat.id})">Drop</button>
-                    `;
+                            <input id="cat-input-${cat.id}" value="${cat.name}" placeholder="Category name">
+                            <button class="action-link" onclick="updateCategory(${cat.id})">Update</button>
+                            <button class="danger-action" onclick="deleteCategory(${cat.id})">Drop</button>
+                        `;
                     container.appendChild(div);
                 });
 
@@ -1617,10 +1826,8 @@
                 if (!dateStr) return "Undated Engine Streams";
                 const d = new Date(dateStr);
                 if (isNaN(d.getTime())) return "Undated Engine Streams";
-
                 let year = d.getFullYear();
                 let month = d.getMonth();
-
                 if (d.getDate() < anchorDay) {
                     month -= 1;
                     if (month < 0) {
@@ -1628,7 +1835,6 @@
                         year -= 1;
                     }
                 }
-
                 const monthNames = [
                     "Jan",
                     "Feb",
@@ -1706,13 +1912,12 @@
 
                     matchingValidCount++;
 
-                    if (!catMetrics[catName]) {
+                    if (!catMetrics[catName])
                         catMetrics[catName] = {
                             total: 0,
                             count: 0,
                             rawAmounts: [],
                         };
-                    }
                     catMetrics[catName].total += amt;
                     catMetrics[catName].count += 1;
                     catMetrics[catName].rawAmounts.push(amt);
@@ -1721,13 +1926,12 @@
                         exp.date,
                         cachedMonthStart,
                     );
-                    if (!historicalCycles[cyclePeriodKey]) {
+                    if (!historicalCycles[cyclePeriodKey])
                         historicalCycles[cyclePeriodKey] = {
                             total: 0,
                             count: 0,
                             categories: {},
                         };
-                    }
                     historicalCycles[cyclePeriodKey].total += amt;
                     historicalCycles[cyclePeriodKey].count += 1;
                     historicalCycles[cyclePeriodKey].categories[catName] =
@@ -1760,12 +1964,14 @@
                     catMetrics,
                 ).reduce((acc, c) => acc + c.total, 0);
 
-                mBody.innerHTML = "";
-                Object.entries(historicalCycles)
-                    .sort((a, b) => b[1].total - a[1].total)
-                    .forEach(([cycleName, meta], index) => {
-                        let highestMonthDriver = "—";
-                        let highestMonthDriverAmt = 0;
+                const sortedCycles = Object.entries(historicalCycles).sort(
+                    (a, b) => b[1].total - a[1].total,
+                );
+                monthRankPaginator.setData(
+                    sortedCycles,
+                    ([cycleName, meta], index) => {
+                        let highestMonthDriver = "—",
+                            highestMonthDriverAmt = 0;
                         Object.entries(meta.categories).forEach(
                             ([cName, cAmt]) => {
                                 if (cAmt > highestMonthDriverAmt) {
@@ -1774,70 +1980,64 @@
                                 }
                             },
                         );
-
                         let trackingBadgeHtml = `<span style="color:var(--text-secondary); font-size:0.75rem;">—</span>`;
                         if (targetGoalConfig > 0) {
-                            const limitUtilizationRatio =
-                                meta.total / targetGoalConfig;
-                            if (limitUtilizationRatio >= 1.0) {
+                            const r = meta.total / targetGoalConfig;
+                            if (r >= 1.0)
                                 trackingBadgeHtml = `<span style="background:rgba(235,87,87,0.15); color:#eb5757; padding:2px 6px; border-radius:4px; font-size:0.7rem; font-weight:bold; border:1px solid rgba(235,87,87,0.3);">Critical Tier</span>`;
-                            } else if (limitUtilizationRatio >= 0.85) {
+                            else if (r >= 0.85)
                                 trackingBadgeHtml = `<span style="background:rgba(242,201,76,0.15); color:#f2c94c; padding:2px 6px; border-radius:4px; font-size:0.7rem; font-weight:bold; border:1px solid rgba(242,201,76,0.3);">Warning Tier</span>`;
-                            } else {
+                            else
                                 trackingBadgeHtml = `<span style="background:rgba(39,174,96,0.15); color:#27ae60; padding:2px 6px; border-radius:4px; font-size:0.7rem; font-weight:bold; border:1px solid rgba(39,174,96,0.3);">Safe Scope</span>`;
-                            }
                         }
-
                         const mTr = document.createElement("tr");
                         mTr.innerHTML = `
-                            <td style="font-family:monospace; font-weight:700; color:var(--text-secondary);">#${index + 1}</td>
-                            <td style="font-weight:600; color:var(--text-primary);">${cycleName}</td>
-                            <td class="amount-text" style="color:var(--accent);">$${meta.total.toFixed(2)}</td>
-                            <td>${trackingBadgeHtml}</td>
-                            <td style="font-size:0.8rem;">${highestMonthDriver} <span style="color:var(--text-secondary); font-size:0.75rem;">($${highestMonthDriverAmt.toFixed(0)})</span></td>
-                            <td style="font-family:monospace; color:var(--text-secondary);">${meta.count} units</td>
-                        `;
-                        mBody.appendChild(mTr);
-                    });
+                                        <td style="font-family:monospace; font-weight:700; color:var(--text-secondary);">#${index + 1}</td>
+                                        <td style="font-weight:600; color:var(--text-primary);">${cycleName}</td>
+                                        <td class="amount-text" style="color:var(--accent);">$${meta.total.toFixed(2)}</td>
+                                        <td>${trackingBadgeHtml}</td>
+                                        <td style="font-size:0.8rem;">${highestMonthDriver} <span style="color:var(--text-secondary); font-size:0.75rem;">($${highestMonthDriverAmt.toFixed(0)})</span></td>
+                                        <td style="font-family:monospace; color:var(--text-secondary);">${meta.count} units</td>`;
+                        return mTr;
+                    },
+                );
 
-                tbody.innerHTML = "";
-                Object.entries(catMetrics)
-                    .sort((a, b) => b[1].total - a[1].total)
-                    .forEach(([name, meta]) => {
-                        const share =
-                            filteredPipelineTotalSum > 0
-                                ? (
-                                      (meta.total / filteredPipelineTotalSum) *
-                                      100
-                                  ).toFixed(1)
-                                : 0;
-                        const mean =
-                            meta.count > 0
-                                ? (meta.total / meta.count).toFixed(2)
-                                : 0;
-
-                        const tr = document.createElement("tr");
-                        tr.innerHTML = `
-                            <td style="font-weight:600; color:var(--text-primary);">${name}</td>
-                            <td class="amount-text">${meta.total.toFixed(2)}</td>
-                            <td style="color:var(--accent); font-family:monospace;">${share}%</td>
-                            <td class="amount-text" style="color:var(--text-secondary);">${mean}</td>
-                            <td style="font-family:monospace;">${meta.count} hits</td>
-                        `;
-                        tbody.appendChild(tr);
-                    });
+                const sortedCats = Object.entries(catMetrics).sort(
+                    (a, b) => b[1].total - a[1].total,
+                );
+                catBreakdownPaginator.setData(sortedCats, ([name, meta]) => {
+                    const share =
+                        filteredPipelineTotalSum > 0
+                            ? (
+                                  (meta.total / filteredPipelineTotalSum) *
+                                  100
+                              ).toFixed(1)
+                            : 0;
+                    const mean =
+                        meta.count > 0
+                            ? (meta.total / meta.count).toFixed(2)
+                            : 0;
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                                        <td style="font-weight:600; color:var(--text-primary);">${name}</td>
+                                        <td class="amount-text">${meta.total.toFixed(2)}</td>
+                                        <td style="color:var(--accent); font-family:monospace;">${share}%</td>
+                                        <td class="amount-text" style="color:var(--text-secondary);">${mean}</td>
+                                        <td style="font-family:monospace;">${meta.count} hits</td>`;
+                    return tr;
+                });
 
                 const outliersDiv =
                     document.getElementById("analyticsOutliers");
                 if (maxSingleTransaction.amount > 0) {
                     outliersDiv.innerHTML = `
-                        <div style="font-size:1.1rem; font-weight:700; font-family:monospace; margin-bottom:2px;">$${maxSingleTransaction.amount.toFixed(2)}</div>
-                        <div style="font-size:0.8rem; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><span style="color:var(--text-secondary);">Target:</span> ${maxSingleTransaction.note}</div>
-                        <div style="font-size:0.75rem; color:var(--text-secondary); display:flex; gap:12px; margin-top:2px;">
-                            <span>Sector: <b>${maxSingleTransaction.category}</b></span>
-                            <span>Date: <b>${maxSingleTransaction.date}</b></span>
-                        </div>
-                    `;
+                            <div style="font-size:1.1rem; font-weight:700; font-family:monospace; margin-bottom:2px;">$${maxSingleTransaction.amount.toFixed(2)}</div>
+                            <div style="font-size:0.8rem; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><span style="color:var(--text-secondary);">Target:</span> ${maxSingleTransaction.note}</div>
+                            <div style="font-size:0.75rem; color:var(--text-secondary); display:flex; gap:12px; margin-top:2px;">
+                                <span>Sector: <b>${maxSingleTransaction.category}</b></span>
+                                <span>Date: <b>${maxSingleTransaction.date}</b></span>
+                            </div>
+                        `;
                 } else {
                     outliersDiv.innerHTML = `<div style="color:var(--text-secondary); font-size:0.8rem;">No entries match criteria parameters.</div>`;
                 }
@@ -1855,10 +2055,10 @@
                     document.getElementById("analyticsTemporal");
                 if (peakDayVolume > 0) {
                     temporalDiv.innerHTML = `
-                        <div style="font-size:1.1rem; font-weight:700; font-family:monospace; margin-bottom:2px; color:var(--success);">${peakDay}</div>
-                        <div style="font-size:0.8rem; color:var(--text-primary);"><span style="color:var(--text-secondary);">Single Day Cap:</span> $${peakDayVolume.toFixed(2)}</div>
-                        <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:2px;">Calculated system spike bound</div>
-                    `;
+                            <div style="font-size:1.1rem; font-weight:700; font-family:monospace; margin-bottom:2px; color:var(--success);">${peakDay}</div>
+                            <div style="font-size:0.8rem; color:var(--text-primary);"><span style="color:var(--text-secondary);">Single Day Cap:</span> $${peakDayVolume.toFixed(2)}</div>
+                            <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:2px;">Calculated system spike bound</div>
+                        `;
                 } else {
                     temporalDiv.innerHTML = `<div style="color:var(--text-secondary); font-size:0.8rem;">No time bounds tracked.</div>`;
                 }
