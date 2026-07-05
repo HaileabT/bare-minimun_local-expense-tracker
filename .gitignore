@@ -4,3 +4,4 @@ node_modules
 drizzle
 .env
 settings.json
+backups
