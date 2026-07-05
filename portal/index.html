@@ -776,6 +776,41 @@
                     <div id="categories" class="category-list"></div>
                 </div>
 
+                <div class="panel">
+                    <div
+                        style="
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            margin-bottom: 12px;
+                        "
+                    >
+                        <h2>Backups</h2>
+                        <button
+                            onclick="createBackup()"
+                            style="padding: 4px 12px; font-size: 0.8rem"
+                        >
+                            + Create Backup
+                        </button>
+                    </div>
+                    <div
+                        id="backupList"
+                        class="category-list"
+                        style="max-height: 200px"
+                    >
+                        <div
+                            style="
+                                color: var(--text-secondary);
+                                font-size: 0.8rem;
+                                text-align: center;
+                                padding: 12px 0;
+                            "
+                        >
+                            Loading...
+                        </div>
+                    </div>
+                </div>
+
                 <details>
                     <summary>Raw Server JSON Output</summary>
                     <pre id="output">{}</pre>
@@ -2163,11 +2198,59 @@
                 ctx.textAlign = "left";
             }
 
+            async function loadBackups() {
+                const container = document.getElementById("backupList");
+                const data = await request("/app/backups");
+                container.innerHTML = "";
+                const list = Array.isArray(data) ? data : [];
+                if (list.length === 0) {
+                    container.innerHTML = `<div style="color:var(--text-secondary); font-size:0.8rem; text-align:center; padding:12px 0;">No backups yet.</div>`;
+                    return;
+                }
+                // Show newest first
+                [...list].reverse().forEach((name) => {
+                    const div = document.createElement("div");
+                    div.className = "category-item";
+                    div.style.gridTemplateColumns = "1fr auto";
+                    div.innerHTML = `
+                        <span style="font-family:monospace; font-size:0.8rem; color:var(--text-primary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${name}</span>
+                        <button class="action-link" style="color:var(--warning); white-space:nowrap;" onclick="restoreBackup('${name}')">Restore</button>
+                    `;
+                    container.appendChild(div);
+                });
+            }
+
+            async function createBackup() {
+                const btn = event.currentTarget;
+                btn.disabled = true;
+                btn.textContent = "Creating...";
+                await request("/app/backups/backup-db", { method: "POST" });
+                btn.disabled = false;
+                btn.textContent = "+ Create Backup";
+                await loadBackups();
+            }
+
+            async function restoreBackup(name) {
+                if (
+                    !confirm(
+                        `Restore backup "${name}"?\nThis will overwrite your current data.`,
+                    )
+                )
+                    return;
+                await request("/app/backups/restore-db", {
+                    method: "POST",
+                    body: JSON.stringify({ filename: name }),
+                });
+                await loadExpenses();
+                await loadCategories();
+            }
+
             window.addEventListener("DOMContentLoaded", async () => {
                 await syncCategoryCache();
                 await loadSettings();
                 await loadExpenses();
                 await loadCategories();
+                await loadBackups();
             });
         </script>
     </body>
