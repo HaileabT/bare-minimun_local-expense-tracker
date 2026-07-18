@@ -491,6 +491,19 @@
                 opacity: 0.3;
                 cursor: not-allowed;
             }
+
+            /* Monthly Cost Breakdown Styles */
+            #analyticsMonthRankTableBody tr {
+                cursor: pointer;
+                transition: background-color 0.15s ease;
+            }
+            #analyticsMonthRankTableBody tr:hover {
+                background: rgba(47, 128, 237, 0.1) !important;
+            }
+            #analyticsMonthRankTableBody tr.selected-row {
+                background: rgba(47, 128, 237, 0.2) !important;
+                border: 1px solid var(--accent);
+            }
         </style>
     </head>
     <body>
@@ -1008,6 +1021,25 @@
                     </div>
                     <div
                         style="
+                            width: 180px;
+                            display: flex;
+                            flex-direction: column;
+                            gap: 6px;
+                        "
+                    >
+                        <label style="font-size: 0.7rem"
+                            >Exclude Category</label
+                        >
+                        <select
+                            id="modalExcludeCategory"
+                            onchange="runDeepAnalyticsEngine()"
+                            style="background: var(--bg-input)"
+                        >
+                            <option value="NONE">None</option>
+                        </select>
+                    </div>
+                    <div
+                        style="
                             width: 130px;
                             display: flex;
                             flex-direction: column;
@@ -1151,6 +1183,100 @@
                     </div>
                 </div>
 
+                <!-- MONTHLY COST BREAKDOWN PANEL -->
+                <div
+                    id="monthlyBreakdownSection"
+                    class="panel"
+                    style="
+                        display: none;
+                        background: var(--bg-element);
+                        border: 1px solid var(--accent);
+                        margin-bottom: 20px;
+                        padding: 16px;
+                    "
+                >
+                    <div
+                        style="
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            margin-bottom: 16px;
+                            border-bottom: 1px solid var(--border);
+                            padding-bottom: 8px;
+                        "
+                    >
+                        <h3 id="monthlyBreakdownTitle" style="font-size: 1.1rem; font-weight: 600; color: var(--accent);">Monthly Breakdown</h3>
+                        <button
+                            class="secondary"
+                            style="padding: 3px 10px; font-size: 0.75rem;"
+                            onclick="closeMonthlyBreakdown()"
+                        >
+                            Close Breakdown
+                        </button>
+                    </div>
+                    <div
+                        style="
+                            display: grid;
+                            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                            gap: 20px;
+                            align-items: start;
+                        "
+                    >
+                        <!-- Pie Chart -->
+                        <div style="display: flex; flex-direction: column; align-items: center;">
+                            <label style="margin-bottom: 12px; display: block; font-size: 0.75rem; font-weight: 600;">Category Distribution</label>
+                            <canvas
+                                id="monthlyBreakdownChartCanvas"
+                                width="280"
+                                height="180"
+                                style="max-width: 100%; max-height: 180px;"
+                            ></canvas>
+                        </div>
+                        <!-- Ranking -->
+                        <div>
+                            <label style="margin-bottom: 12px; display: block; font-size: 0.75rem; font-weight: 600;">Category Ranking</label>
+                            <div
+                                class="table-wrapper"
+                                style="
+                                    background: var(--bg-surface);
+                                    border: 1px solid var(--border);
+                                    border-radius: 6px;
+                                    max-height: 200px;
+                                    overflow-y: auto;
+                                "
+                            >
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Rank</th>
+                                            <th>Category</th>
+                                            <th>Total Spent</th>
+                                            <th>% of Month</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="monthlyBreakdownRankingTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <!-- Daily Average & Stats -->
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <label style="margin-bottom: 2px; display: block; font-size: 0.75rem; font-weight: 600;">Month Statistics</label>
+                            <div class="metric-card" style="background: var(--bg-surface); padding: 12px;">
+                                <label style="font-size: 0.7rem;">Daily Average (Active Days)</label>
+                                <div id="monthlyBreakdownDailyAvgActive" class="metric-val" style="font-size: 1.3rem; color: var(--success); margin-top: 2px;">0.00 Birr</div>
+                            </div>
+                            <div class="metric-card" style="background: var(--bg-surface); padding: 12px;">
+                                <label style="font-size: 0.7rem;">Daily Average (Cycle Days)</label>
+                                <div id="monthlyBreakdownDailyAvgCycle" class="metric-val" style="font-size: 1.3rem; color: var(--accent); margin-top: 2px;">0.00 Birr</div>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 0.75rem; padding: 0 4px; color: var(--text-secondary);">
+                                <span>Active Days: <b id="monthlyBreakdownActiveDaysCount" style="color: var(--text-primary);">0</b></span>
+                                <span>Cycle Length: <b id="monthlyBreakdownCycleDaysCount" style="color: var(--text-primary);">0</b></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- SPLIT INTERACTIVE SUMMARY TRACKS -->
                 <div
                     style="
@@ -1267,6 +1393,7 @@
 
             let cachedMonthStart = 1;
             let cachedSpendingGoal = 0;
+            let selectedBillingCycle = null;
 
             // ── Paginator ──────────────────────────────────────────────────
             class TablePaginator {
@@ -1933,6 +2060,7 @@
                     runDeepAnalyticsEngine();
                 } else {
                     modal.classList.remove("active");
+                    closeMonthlyBreakdown();
                 }
             }
 
@@ -1946,18 +2074,36 @@
                 select.innerHTML =
                     '<option value="ALL">All Categories</option>';
 
+                const excludeSelect = document.getElementById("modalExcludeCategory");
+                const currentExcludeVal = excludeSelect.value;
+                excludeSelect.innerHTML =
+                    '<option value="NONE">None</option>';
+
+                const optUnassigned = document.createElement("option");
+                optUnassigned.value = "UNASSIGNED";
+                optUnassigned.textContent = "Unassigned";
+                if ("UNASSIGNED" === currentExcludeVal) optUnassigned.selected = true;
+                excludeSelect.appendChild(optUnassigned);
+
                 Object.entries(categoryCache).forEach(([id, name]) => {
                     const opt = document.createElement("option");
                     opt.value = id;
                     opt.textContent = name;
                     if (id === currentVal) opt.selected = true;
                     select.appendChild(opt);
+
+                    const optEx = document.createElement("option");
+                    optEx.value = id;
+                    optEx.textContent = name;
+                    if (id === currentExcludeVal) optEx.selected = true;
+                    excludeSelect.appendChild(optEx);
                 });
             }
 
             function resetModalFilters() {
                 document.getElementById("modalFilterKeyword").value = "";
                 document.getElementById("modalFilterCategory").value = "ALL";
+                document.getElementById("modalExcludeCategory").value = "NONE";
                 document.getElementById("modalFilterMinAmount").value = "";
                 document.getElementById("modalSpendingGoal").value =
                     cachedSpendingGoal;
@@ -1994,6 +2140,200 @@
                 return `${monthNames[month]} ${year}`;
             }
 
+            function getDaysInBillingCycle(cycleName, anchorDay) {
+                if (cycleName === "Undated Engine Streams" || !cycleName) return 30;
+                const parts = cycleName.split(" ");
+                if (parts.length !== 2) return 30;
+                const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                const monthIdx = monthNames.indexOf(parts[0]);
+                const year = parseInt(parts[1], 10);
+                if (monthIdx === -1 || isNaN(year)) return 30;
+
+                const startDate = new Date(year, monthIdx, anchorDay);
+                let nextMonth = monthIdx + 1;
+                let nextYear = year;
+                if (nextMonth > 11) {
+                    nextMonth = 0;
+                    nextYear += 1;
+                }
+                const endDate = new Date(nextYear, nextMonth, anchorDay);
+                const diffTime = Math.abs(endDate - startDate);
+                return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            }
+
+            function renderMonthlyPieChart(catMetrics, totalSum) {
+                const canvas = document.getElementById("monthlyBreakdownChartCanvas");
+                if (!canvas) return;
+                const context = canvas.getContext("2d");
+                context.clearRect(0, 0, canvas.width, canvas.height);
+
+                const sortedCats = Object.entries(catMetrics).sort(
+                    (a, b) => b[1].total - a[1].total,
+                );
+                if (totalSum === 0 || sortedCats.length === 0) return;
+
+                const centerX = 80;
+                const centerY = canvas.height / 2;
+                const radius = 65;
+
+                const semanticColors = [
+                    "#2f80ed",
+                    "#27ae60",
+                    "#eb5757",
+                    "#f2c94c",
+                    "#9b51e0",
+                    "#56ccf2",
+                    "#aeaeae",
+                ];
+                let currentAngle = -Math.PI / 2;
+
+                sortedCats.forEach(([name, meta], index) => {
+                    const sliceAngle = (meta.total / totalSum) * (2 * Math.PI);
+                    const color = semanticColors[index % semanticColors.length];
+
+                    context.beginPath();
+                    context.moveTo(centerX, centerY);
+                    context.arc(
+                        centerX,
+                        centerY,
+                        radius,
+                        currentAngle,
+                        currentAngle + sliceAngle,
+                    );
+                    context.closePath();
+                    context.fillStyle = color;
+                    context.fill();
+
+                    const legendX = 160;
+                    const legendY = 20 + index * 18;
+
+                    if (legendY < canvas.height - 5) {
+                        context.fillStyle = color;
+                        context.fillRect(legendX, legendY - 8, 8, 8);
+
+                        context.fillStyle = "#f2f2f7";
+                        context.font = "bold 9px -apple-system, BlinkMacSystemFont, sans-serif";
+                        const printName = name.length > 12 ? name.substring(0, 10) + ".." : name;
+                        context.fillText(printName, legendX + 12, legendY);
+
+                        context.fillStyle = "#aeaeae";
+                        context.font = "8px monospace";
+                        const percentageString = ((meta.total / totalSum) * 100).toFixed(0) + "%";
+                        context.fillText(percentageString, legendX + 85, legendY);
+                    }
+
+                    currentAngle += sliceAngle;
+                });
+            }
+
+            function selectBillingCycle(cycleName) {
+                selectedBillingCycle = cycleName;
+                
+                const rows = document.querySelectorAll("#analyticsMonthRankTableBody tr");
+                rows.forEach(row => {
+                    const nameCell = row.cells[1];
+                    if (nameCell && nameCell.textContent.trim() === cycleName) {
+                        row.classList.add("selected-row");
+                    } else {
+                        row.classList.remove("selected-row");
+                    }
+                });
+
+                const keywordFilter = document
+                    .getElementById("modalFilterKeyword")
+                    .value.toLowerCase()
+                    .trim();
+                const categoryFilter = document.getElementById(
+                    "modalFilterCategory",
+                ).value;
+                const excludeCategoryFilter = document.getElementById(
+                    "modalExcludeCategory",
+                ).value;
+                const minAmountFilter =
+                    Number(
+                        document.getElementById("modalFilterMinAmount").value,
+                    ) || 0;
+
+                const catMetrics = {};
+                let cycleTotal = 0;
+                const activeDaysSet = new Set();
+
+                currentExpensesDataset.forEach((exp) => {
+                    const amt = Number(exp.amount) || 0;
+                    const catIdStr = String(exp.categoryId || "");
+                    const catName = categoryCache[exp.categoryId] || "Unassigned";
+                    const cleanDate = exp.date ? exp.date.split("T")[0] : "Undated";
+                    const noteText = (exp.additionalNote || "").toLowerCase();
+
+                    if (minAmountFilter > 0 && amt < minAmountFilter) return;
+                    if (categoryFilter !== "ALL" && catIdStr !== categoryFilter) return;
+                    if (excludeCategoryFilter !== "NONE") {
+                        if (excludeCategoryFilter === "UNASSIGNED" && !exp.categoryId) {
+                            return;
+                        } else if (catIdStr === excludeCategoryFilter) {
+                            return;
+                        }
+                    }
+                    if (keywordFilter && !noteText.includes(keywordFilter)) return;
+
+                    const cyclePeriodKey = computeCustomBillingCycleKey(exp.date, cachedMonthStart);
+                    if (cyclePeriodKey !== cycleName) return;
+
+                    cycleTotal += amt;
+                    if (cleanDate !== "Undated") {
+                        activeDaysSet.add(cleanDate);
+                    }
+
+                    if (!catMetrics[catName]) {
+                        catMetrics[catName] = { total: 0, count: 0 };
+                    }
+                    catMetrics[catName].total += amt;
+                    catMetrics[catName].count += 1;
+                });
+
+                document.getElementById("monthlyBreakdownTitle").textContent = `Monthly Breakdown: ${cycleName}`;
+
+                const activeDaysCount = activeDaysSet.size;
+                const cycleDaysCount = getDaysInBillingCycle(cycleName, cachedMonthStart);
+                const dailyAvgActive = activeDaysCount > 0 ? (cycleTotal / activeDaysCount).toFixed(2) : "0.00";
+                const dailyAvgCycle = cycleDaysCount > 0 ? (cycleTotal / cycleDaysCount).toFixed(2) : "0.00";
+
+                document.getElementById("monthlyBreakdownDailyAvgActive").textContent = `${dailyAvgActive} Birr`;
+                document.getElementById("monthlyBreakdownDailyAvgCycle").textContent = `${dailyAvgCycle} Birr`;
+                document.getElementById("monthlyBreakdownActiveDaysCount").textContent = activeDaysCount;
+                document.getElementById("monthlyBreakdownCycleDaysCount").textContent = cycleDaysCount;
+
+                const rankingTbody = document.getElementById("monthlyBreakdownRankingTableBody");
+                rankingTbody.innerHTML = "";
+
+                const sortedCats = Object.entries(catMetrics).sort((a, b) => b[1].total - a[1].total);
+                if (sortedCats.length === 0) {
+                    rankingTbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-secondary);">No category data.</td></tr>`;
+                } else {
+                    sortedCats.forEach(([name, meta], index) => {
+                        const share = cycleTotal > 0 ? ((meta.total / cycleTotal) * 100).toFixed(1) : "0.0";
+                        const tr = document.createElement("tr");
+                        tr.innerHTML = `
+                            <td style="font-family:monospace; font-weight:700; color:var(--text-secondary);">#${index + 1}</td>
+                            <td style="font-weight:600; color:var(--text-primary);">${name}</td>
+                            <td class="amount-text">${meta.total.toFixed(2)} Birr</td>
+                            <td style="color:var(--accent); font-family:monospace;">${share}%</td>
+                        `;
+                        rankingTbody.appendChild(tr);
+                    });
+                }
+
+                renderMonthlyPieChart(catMetrics, cycleTotal);
+                document.getElementById("monthlyBreakdownSection").style.display = "block";
+            }
+
+            function closeMonthlyBreakdown() {
+                selectedBillingCycle = null;
+                document.getElementById("monthlyBreakdownSection").style.display = "none";
+                const rows = document.querySelectorAll("#analyticsMonthRankTableBody tr");
+                rows.forEach(row => row.classList.remove("selected-row"));
+            }
+
             function runDeepAnalyticsEngine() {
                 const tbody = document.getElementById("analyticsTableBody");
                 const mBody = document.getElementById(
@@ -2015,6 +2355,9 @@
                     .trim();
                 const categoryFilter = document.getElementById(
                     "modalFilterCategory",
+                ).value;
+                const excludeCategoryFilter = document.getElementById(
+                    "modalExcludeCategory",
                 ).value;
                 const minAmountFilter =
                     Number(
@@ -2050,6 +2393,13 @@
                     if (minAmountFilter > 0 && amt < minAmountFilter) return;
                     if (categoryFilter !== "ALL" && catIdStr !== categoryFilter)
                         return;
+                    if (excludeCategoryFilter !== "NONE") {
+                        if (excludeCategoryFilter === "UNASSIGNED" && !exp.categoryId) {
+                            return;
+                        } else if (catIdStr === excludeCategoryFilter) {
+                            return;
+                        }
+                    }
                     if (keywordFilter && !noteText.includes(keywordFilter))
                         return;
 
@@ -2139,14 +2489,18 @@
                                 trackingBadgeHtml = `<span style="background:rgba(39,174,96,0.15); color:#27ae60; padding:2px 6px; border-radius:4px; font-size:0.7rem; font-weight:bold; border:1px solid rgba(39,174,96,0.3);">Safe Scope</span>`;
                         }
                         const mTr = document.createElement("tr");
+                        if (selectedBillingCycle === cycleName) {
+                            mTr.className = "selected-row";
+                        }
+                        mTr.onclick = () => selectBillingCycle(cycleName);
                         mTr.innerHTML = `
-                                        <td style="font-family:monospace; font-weight:700; color:var(--text-secondary);">#${index + 1}</td>
-                                        <td style="font-weight:600; color:var(--text-primary);">${cycleName}</td>
-                                        <td class="amount-text" style="color:var(--accent);">${meta.total.toFixed(2)}</td>
-                                        <td class="amount-text" style="color:var(--accent);">${(meta.goal || targetGoalConfig).toFixed(2)}</td>
-                                        <td>${trackingBadgeHtml}</td>
-                                        <td style="font-size:0.8rem;">${highestMonthDriver} <span style="color:var(--text-secondary); font-size:0.65rem;">(${highestMonthDriverAmt.toFixed(0)})</span></td>
-                                        <td style="font-family:monospace; color:var(--text-secondary);">${meta.count}</td>`;
+                                         <td style="font-family:monospace; font-weight:700; color:var(--text-secondary);">#${index + 1}</td>
+                                         <td style="font-weight:600; color:var(--text-primary);">${cycleName}</td>
+                                         <td class="amount-text" style="color:var(--accent);">${meta.total.toFixed(2)}</td>
+                                         <td class="amount-text" style="color:var(--accent);">${(meta.goal || targetGoalConfig).toFixed(2)}</td>
+                                         <td>${trackingBadgeHtml}</td>
+                                         <td style="font-size:0.8rem;">${highestMonthDriver} <span style="color:var(--text-secondary); font-size:0.65rem;">(${highestMonthDriverAmt.toFixed(0)})</span></td>
+                                         <td style="font-family:monospace; color:var(--text-secondary);">${meta.count}</td>`;
                         return mTr;
                     },
                 );
@@ -2213,6 +2567,15 @@
                 }
 
                 renderInternalDonutChart(catMetrics, filteredPipelineTotalSum);
+
+                if (selectedBillingCycle) {
+                    const exists = sortedCycles.some(([name]) => name === selectedBillingCycle);
+                    if (exists) {
+                        selectBillingCycle(selectedBillingCycle);
+                    } else {
+                        closeMonthlyBreakdown();
+                    }
+                }
             }
 
             function renderInternalDonutChart(catMetrics, totalSum) {
