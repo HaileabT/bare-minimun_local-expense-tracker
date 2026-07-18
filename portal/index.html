@@ -504,6 +504,11 @@
                 background: rgba(47, 128, 237, 0.2) !important;
                 border: 1px solid var(--accent);
             }
+
+            /* Dropdown menu hover styles */
+            .dropdown-content a:hover {
+                background-color: var(--bg-element) !important;
+            }
         </style>
     </head>
     <body>
@@ -537,25 +542,37 @@
                         "
                     >
                         <h2>Spending Overview</h2>
-                        <div style="display: flex; gap: 8px">
+                        <div style="display: flex; gap: 8px; align-items: center;">
                             <button
                                 class="success"
                                 onclick="openAnalyticsModal()"
+                                title="Analyze Matrix"
+                                style="display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border-radius: 50%;"
                             >
-                                Analyze Matrix
+                                <i class="fa-solid fa-chart-pie" style="font-size: 1.1rem;"></i>
                             </button>
                             <button
                                 class="secondary"
-                                onclick="exportData('json')"
+                                onclick="openConsistencyModal()"
+                                title="Tracking Consistency"
+                                style="display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border-radius: 50%;"
                             >
-                                Export JSON
+                                <i class="fa-solid fa-calendar-check" style="font-size: 1.1rem;"></i>
                             </button>
-                            <button
-                                class="secondary"
-                                onclick="exportData('csv')"
-                            >
-                                Export CSV
-                            </button>
+                            <!-- Export Dropdown -->
+                            <div class="dropdown" style="position: relative; display: inline-block;">
+                                <button
+                                    class="secondary"
+                                    onclick="toggleExportDropdown(event)"
+                                    style="display: flex; align-items: center; gap: 6px; height: 36px; padding: 0 16px; border-radius: 18px;"
+                                >
+                                    <i class="fa-solid fa-download"></i> Export <i class="fa-solid fa-chevron-down" style="font-size: 0.7rem;"></i>
+                                </button>
+                                <div id="exportDropdownContent" class="dropdown-content" style="display: none; position: absolute; right: 0; background-color: var(--bg-surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 16px rgba(0,0,0,0.6); z-index: 1000; min-width: 130px; margin-top: 6px; overflow: hidden;">
+                                    <a href="#" onclick="exportData('json'); toggleExportDropdown(event);" style="color: var(--text-primary); padding: 10px 16px; display: block; text-decoration: none; font-size: 0.85rem; border-bottom: 1px solid var(--border);">JSON Format</a>
+                                    <a href="#" onclick="exportData('csv'); toggleExportDropdown(event);" style="color: var(--text-primary); padding: 10px 16px; display: block; text-decoration: none; font-size: 0.85rem;">CSV Format</a>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -1364,6 +1381,104 @@
                     <button
                         class="secondary"
                         onclick="toggleAnalyticsModal(false)"
+                    >
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TRACKING CONSISTENCY MODAL -->
+        <div
+            id="consistencyModal"
+            class="modal-overlay"
+            onclick="if (event.target === this) toggleConsistencyModal(false);"
+            style="align-items: flex-start; padding-top: 3vh; overflow-y: auto"
+        >
+            <div
+                class="modal-content"
+                style="max-width: 750px; width: 95%; margin-bottom: 30px"
+            >
+                <div
+                    class="modal-header"
+                    style="
+                        border-bottom: 1px solid var(--border);
+                        padding-bottom: 12px;
+                        margin-bottom: 16px;
+                    "
+                >
+                    <div>
+                        <h2 style="margin-bottom: 4px">Tracking Consistency</h2>
+                        <p
+                            style="
+                                font-size: 0.8rem;
+                                color: var(--text-secondary);
+                            "
+                        >
+                            Visualization of your expense logging frequency over time based on entry creation dates
+                        </p>
+                    </div>
+                    <button
+                        class="secondary"
+                        style="padding: 4px 10px"
+                        onclick="toggleConsistencyModal(false)"
+                    >
+                        ✕
+                    </button>
+                </div>
+
+                <!-- Consistency stats cards -->
+                <div
+                    style="
+                        display: grid;
+                        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+                        gap: 12px;
+                        margin-bottom: 20px;
+                    "
+                >
+                    <div class="metric-card" style="padding: 12px; background: var(--bg-surface);">
+                        <label style="font-size: 0.7rem;">Total Logs</label>
+                        <div id="consistencyTotalLogs" class="metric-val" style="font-size: 1.3rem; color: var(--accent); margin-top: 2px;">0</div>
+                    </div>
+                    <div class="metric-card" style="padding: 12px; background: var(--bg-surface);">
+                        <label style="font-size: 0.7rem;">Active Logging Days</label>
+                        <div id="consistencyActiveDays" class="metric-val" style="font-size: 1.3rem; color: var(--accent); margin-top: 2px;">0</div>
+                    </div>
+                    <div class="metric-card" style="padding: 12px; background: var(--bg-surface);">
+                        <label style="font-size: 0.7rem;">Current Streak</label>
+                        <div id="consistencyCurrentStreak" class="metric-val" style="font-size: 1.3rem; color: var(--success); margin-top: 2px;">0 days</div>
+                    </div>
+                    <div class="metric-card" style="padding: 12px; background: var(--bg-surface);">
+                        <label style="font-size: 0.7rem;">Max Streak</label>
+                        <div id="consistencyMaxStreak" class="metric-val" style="font-size: 1.3rem; color: var(--success); margin-top: 2px;">0 days</div>
+                    </div>
+                </div>
+
+                <!-- Heatmap grid -->
+                <div class="panel" style="margin-bottom: 20px; padding: 16px; display: flex; flex-direction: column; align-items: center;">
+                    <label style="margin-bottom: 12px; display: block; font-size: 0.8rem; font-weight: 600; align-self: flex-start;">Log Contribution History (Last 26 Weeks)</label>
+                    <div style="overflow-x: auto; width: 100%; display: flex; justify-content: center; padding: 4px 0;">
+                        <canvas id="consistencyHeatmapCanvas" width="345" height="110" style="max-width: 100%; height: 110px;"></canvas>
+                    </div>
+                </div>
+
+                <!-- Weekly trend line chart -->
+                <div class="panel" style="margin-bottom: 20px; padding: 16px;">
+                    <label style="margin-bottom: 12px; display: block; font-size: 0.8rem; font-weight: 600;">Daily Log Volume Trend (Last 30 Days)</label>
+                    <canvas id="consistencyTrendCanvas" width="680" height="150" style="width: 100%; max-height: 150px;"></canvas>
+                </div>
+
+                <div
+                    style="
+                        display: flex;
+                        justify-content: flex-end;
+                        border-top: 1px solid var(--border);
+                        padding-top: 12px;
+                    "
+                >
+                    <button
+                        class="secondary"
+                        onclick="toggleConsistencyModal(false)"
                     >
                         Close
                     </button>
@@ -2332,6 +2447,296 @@
                 document.getElementById("monthlyBreakdownSection").style.display = "none";
                 const rows = document.querySelectorAll("#analyticsMonthRankTableBody tr");
                 rows.forEach(row => row.classList.remove("selected-row"));
+            }
+
+            function toggleConsistencyModal(open) {
+                const modal = document.getElementById("consistencyModal");
+                if (open) {
+                    modal.classList.add("active");
+                    runTrackingConsistencyEngine();
+                } else {
+                    modal.classList.remove("active");
+                }
+            }
+
+            function openConsistencyModal() {
+                toggleConsistencyModal(true);
+            }
+
+            function toggleExportDropdown(event) {
+                event.stopPropagation();
+                const dropdown = document.getElementById("exportDropdownContent");
+                if (dropdown) {
+                    dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
+                }
+            }
+
+            // Close the export dropdown if clicked outside
+            window.addEventListener("click", function(event) {
+                const dropdown = document.getElementById("exportDropdownContent");
+                if (dropdown && dropdown.style.display === "block") {
+                    if (!event.target.closest(".dropdown")) {
+                        dropdown.style.display = "none";
+                    }
+                }
+            });
+
+            function calculateStreaks(logsByDay) {
+                const today = new Date();
+                const dateKeys = Object.keys(logsByDay).sort();
+                if (dateKeys.length === 0) return { current: 0, max: 0 };
+
+                const sortedDates = dateKeys.map(d => new Date(d));
+                const firstLogDate = sortedDates[0];
+                
+                let currentStreak = 0;
+                let checkDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                
+                const formatDate = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                
+                const todayKey = formatDate(checkDate);
+                const yesterday = new Date(checkDate.getTime() - 24 * 60 * 60 * 1000);
+                const yesterdayKey = formatDate(yesterday);
+
+                let startFrom = checkDate;
+                if (!logsByDay[todayKey]) {
+                    if (logsByDay[yesterdayKey]) {
+                        startFrom = yesterday;
+                    } else {
+                        currentStreak = 0;
+                        startFrom = null;
+                    }
+                }
+
+                if (startFrom) {
+                    let d = new Date(startFrom);
+                    while (true) {
+                        const key = formatDate(d);
+                        if (logsByDay[key]) {
+                            currentStreak++;
+                            d.setDate(d.getDate() - 1);
+                        } else {
+                            break;
+                        }
+                    }
+                }
+
+                let maxStreak = 0;
+                let tempStreak = 0;
+                let d = new Date(firstLogDate);
+                const end = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                
+                while (d <= end) {
+                    const key = formatDate(d);
+                    if (logsByDay[key]) {
+                        tempStreak++;
+                        if (tempStreak > maxStreak) {
+                            maxStreak = tempStreak;
+                        }
+                    } else {
+                        tempStreak = 0;
+                    }
+                    d.setDate(d.getDate() + 1);
+                }
+
+                return { current: currentStreak, max: maxStreak };
+            }
+
+            function drawHeatmap(logsByDay) {
+                const canvas = document.getElementById("consistencyHeatmapCanvas");
+                if (!canvas) return;
+                const ctx = canvas.getContext("2d");
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                const today = new Date();
+                const currentDayOfWeek = today.getDay();
+                const startSunday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 25 * 7 - currentDayOfWeek);
+
+                const cellSize = 10;
+                const cellGap = 2;
+                const xOffset = 25;
+                const yOffset = 15;
+
+                ctx.fillStyle = "#f2f2f7";
+                ctx.font = "bold 8px -apple-system, BlinkMacSystemFont, sans-serif";
+                ctx.fillText("Mon", 2, yOffset + 1 * 12 + 8);
+                ctx.fillText("Wed", 2, yOffset + 3 * 12 + 8);
+                ctx.fillText("Fri", 2, yOffset + 5 * 12 + 8);
+
+                const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                let lastMonthLabel = -1;
+
+                for (let w = 0; w < 26; w++) {
+                    const columnDate = new Date(startSunday.getTime() + w * 7 * 24 * 60 * 60 * 1000);
+                    if (columnDate.getMonth() !== lastMonthLabel) {
+                        ctx.fillStyle = "#f2f2f7";
+                        ctx.fillText(monthNames[columnDate.getMonth()], xOffset + w * 12, yOffset - 4);
+                        lastMonthLabel = columnDate.getMonth();
+                    }
+
+                    for (let d = 0; d < 7; d++) {
+                        const cellDate = new Date(columnDate.getTime() + d * 24 * 60 * 60 * 1000);
+                        if (cellDate > today) continue;
+
+                        const yStr = cellDate.getFullYear();
+                        const mStr = String(cellDate.getMonth() + 1).padStart(2, '0');
+                        const dStr = String(cellDate.getDate()).padStart(2, '0');
+                        const dateKey = `${yStr}-${mStr}-${dStr}`;
+
+                        const count = logsByDay[dateKey] || 0;
+
+                        let color = "rgba(255, 255, 255, 0.08)";
+                        if (count > 0) {
+                            if (count === 1) color = "#1a5c38";
+                            else if (count <= 3) color = "#2ea060";
+                            else if (count <= 5) color = "#4ade80";
+                            else color = "#a3e635";
+                        }
+
+                        ctx.fillStyle = color;
+                        const cx = xOffset + w * 12;
+                        const cy = yOffset + d * 12;
+                        
+                        if (ctx.roundRect) {
+                            ctx.beginPath();
+                            ctx.roundRect(cx, cy, cellSize, cellSize, 2);
+                            ctx.fill();
+                        } else {
+                            ctx.fillRect(cx, cy, cellSize, cellSize);
+                        }
+                    }
+                }
+            }
+
+            function drawConsistencyTrendChart(logsByDay) {
+                const canvas = document.getElementById("consistencyTrendCanvas");
+                if (!canvas) return;
+                const ctx = canvas.getContext("2d");
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                const days = [];
+                const counts = [];
+                const today = new Date();
+                for (let i = 29; i >= 0; i--) {
+                    const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);
+                    const y = d.getFullYear();
+                    const m = String(d.getMonth() + 1).padStart(2, '0');
+                    const dayVal = String(d.getDate()).padStart(2, '0');
+                    const key = `${y}-${m}-${dayVal}`;
+                    days.push(`${d.getDate()} ${d.toLocaleString('default', { month: 'short' })}`);
+                    counts.push(logsByDay[key] || 0);
+                }
+
+                const maxVal = Math.max(...counts, 4);
+                const width = canvas.width;
+                const height = canvas.height;
+                const paddingLeft = 30;
+                const paddingRight = 15;
+                const paddingTop = 20;
+                const paddingBottom = 25;
+
+                const chartWidth = width - paddingLeft - paddingRight;
+                const chartHeight = height - paddingTop - paddingBottom;
+
+                // Draw Y-axis gridlines & labels
+                ctx.strokeStyle = "rgba(255, 255, 255, 0.12)";
+                ctx.lineWidth = 1;
+                ctx.fillStyle = "#f2f2f7";
+                ctx.font = "bold 9px monospace";
+
+                const yTicks = 4;
+                for (let i = 0; i <= yTicks; i++) {
+                    const val = Math.round((maxVal / yTicks) * i);
+                    const y = height - paddingBottom - (i / yTicks) * chartHeight;
+                    ctx.beginPath();
+                    ctx.moveTo(paddingLeft, y);
+                    ctx.lineTo(width - paddingRight, y);
+                    ctx.stroke();
+
+                    ctx.fillText(val, 5, y + 3);
+                }
+
+                // Compute points
+                const points = [];
+                for (let i = 0; i < 30; i++) {
+                    const x = paddingLeft + i * (chartWidth / 29);
+                    const y = height - paddingBottom - (counts[i] / maxVal) * chartHeight;
+                    points.push({ x, y, val: counts[i] });
+                }
+
+                // Draw filled area gradient
+                const areaGradient = ctx.createLinearGradient(0, paddingTop, 0, height - paddingBottom);
+                areaGradient.addColorStop(0, "rgba(56, 189, 248, 0.35)");
+                areaGradient.addColorStop(1, "rgba(56, 189, 248, 0.01)");
+
+                ctx.beginPath();
+                ctx.moveTo(points[0].x, height - paddingBottom);
+                for (let i = 0; i < 30; i++) {
+                    ctx.lineTo(points[i].x, points[i].y);
+                }
+                ctx.lineTo(points[29].x, height - paddingBottom);
+                ctx.closePath();
+                ctx.fillStyle = areaGradient;
+                ctx.fill();
+
+                // Draw path line
+                ctx.beginPath();
+                ctx.strokeStyle = "#38bdf8";
+                ctx.lineWidth = 3;
+                for (let i = 0; i < 30; i++) {
+                    if (i === 0) ctx.moveTo(points[i].x, points[i].y);
+                    else ctx.lineTo(points[i].x, points[i].y);
+                }
+                ctx.stroke();
+
+                // Draw dots for active days
+                for (let i = 0; i < 30; i++) {
+                    if (points[i].val > 0) {
+                        ctx.beginPath();
+                        ctx.arc(points[i].x, points[i].y, 4.5, 0, 2 * Math.PI);
+                        ctx.fillStyle = "#38bdf8";
+                        ctx.fill();
+                        ctx.strokeStyle = "#ffffff";
+                        ctx.lineWidth = 1.5;
+                        ctx.stroke();
+                    }
+                }
+
+                // Draw selected X-axis labels (every 5 days)
+                ctx.fillStyle = "#f2f2f7";
+                ctx.font = "bold 9px -apple-system, BlinkMacSystemFont, sans-serif";
+                for (let i = 0; i < 30; i += 5) {
+                    const x = points[i].x;
+                    ctx.fillText(days[i], x - 10, height - 8);
+                }
+            }
+
+            function runTrackingConsistencyEngine() {
+                const logsByDay = {};
+                let totalLogs = 0;
+
+                currentExpensesDataset.forEach((exp) => {
+                    const createdTime = exp.createdAt ? new Date(exp.createdAt) : null;
+                    if (createdTime) {
+                        totalLogs++;
+                        const year = createdTime.getFullYear();
+                        const month = String(createdTime.getMonth() + 1).padStart(2, '0');
+                        const day = String(createdTime.getDate()).padStart(2, '0');
+                        const dateStr = `${year}-${month}-${day}`;
+                        logsByDay[dateStr] = (logsByDay[dateStr] || 0) + 1;
+                    }
+                });
+
+                document.getElementById("consistencyTotalLogs").textContent = totalLogs;
+                const activeDays = Object.keys(logsByDay).length;
+                document.getElementById("consistencyActiveDays").textContent = activeDays;
+
+                const streaks = calculateStreaks(logsByDay);
+                document.getElementById("consistencyCurrentStreak").textContent = `${streaks.current} day${streaks.current === 1 ? '' : 's'}`;
+                document.getElementById("consistencyMaxStreak").textContent = `${streaks.max} day${streaks.max === 1 ? '' : 's'}`;
+
+                drawHeatmap(logsByDay);
+                drawConsistencyTrendChart(logsByDay);
             }
 
             function runDeepAnalyticsEngine() {
