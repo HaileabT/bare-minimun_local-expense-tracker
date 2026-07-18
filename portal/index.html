@@ -509,12 +509,28 @@
             .dropdown-content a:hover {
                 background-color: var(--bg-element) !important;
             }
+            #dashboardTitle:hover {
+                border-bottom: 1px dashed var(--accent) !important;
+            }
         </style>
     </head>
     <body>
         <header>
             <div>
-                <h1>Expense Intelligence Matrix</h1>
+                <h1
+                    id="dashboardTitle"
+                    contenteditable="true"
+                    style="
+                        outline: none;
+                        border-bottom: 1px dashed transparent;
+                        cursor: pointer;
+                        display: inline-block;
+                        transition: border-color 0.15s ease;
+                    "
+                    title="Click to rename dashboard"
+                >
+                    Expense Intelligence Matrix
+                </h1>
             </div>
             <div
                 style="
@@ -3102,6 +3118,52 @@
             }
 
             window.addEventListener("DOMContentLoaded", async () => {
+                // Initialize dashboard title from localStorage
+                const savedTitle = localStorage.getItem("dashboardTitle");
+                const dashboardTitle = document.getElementById("dashboardTitle");
+                if (savedTitle && dashboardTitle) {
+                    dashboardTitle.textContent = savedTitle;
+                }
+
+                if (dashboardTitle) {
+                    dashboardTitle.addEventListener("blur", () => {
+                        const newTitle = dashboardTitle.textContent.trim() || "Expense Intelligence Matrix";
+                        dashboardTitle.textContent = newTitle;
+                        localStorage.setItem("dashboardTitle", newTitle);
+                    });
+
+                    dashboardTitle.addEventListener("keydown", (e) => {
+                        if (e.key === "Enter") {
+                            e.preventDefault();
+                            dashboardTitle.blur();
+                        }
+                    });
+                }
+
+                // Initialize API base URL from localStorage
+                const savedBaseUrl = localStorage.getItem("apiBaseUrl");
+                const baseUrlInput = document.getElementById("baseUrl");
+                if (savedBaseUrl && baseUrlInput) {
+                    baseUrlInput.value = savedBaseUrl;
+                }
+
+                if (baseUrlInput) {
+                    baseUrlInput.addEventListener("change", async () => {
+                        const newBaseUrl = baseUrlInput.value.trim();
+                        localStorage.setItem("apiBaseUrl", newBaseUrl);
+                        await syncCategoryCache();
+                        await loadExpenses();
+                        await loadCategories();
+                        await loadBackups();
+                    });
+
+                    baseUrlInput.addEventListener("keydown", (e) => {
+                        if (e.key === "Enter") {
+                            baseUrlInput.blur();
+                        }
+                    });
+                }
+
                 await syncCategoryCache();
                 await loadSettings();
                 await loadExpenses();
