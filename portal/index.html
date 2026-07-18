@@ -634,83 +634,66 @@
 
                     <!-- COALESCED FILTER ENGINE BLOCK -->
                     <div
-                        class="inline-form-row"
                         style="
-                            align-items: flex-start;
+                            display: grid;
+                            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
                             gap: 16px;
                             margin-bottom: 20px;
                             border-bottom: 1px solid var(--border);
                             padding-bottom: 20px;
                         "
                     >
-                        <div
-                            style="
-                                display: flex;
-                                flex-direction: column;
-                                gap: 12px;
-                                flex: 1;
-                                min-width: 300px;
-                            "
-                        >
-                            <div style="display: flex; gap: 12px; width: 100%">
-                                <div class="form-group">
-                                    <label>Min Amt</label>
-                                    <input
-                                        id="filterMinAmount"
-                                        type="number"
-                                        placeholder="Min"
-                                    />
-                                </div>
-                                <div class="form-group">
-                                    <label>Max Amt</label>
-                                    <input
-                                        id="filterMaxAmount"
-                                        type="number"
-                                        placeholder="Max"
-                                    />
-                                </div>
-                                <div class="form-group">
-                                    <label>From</label>
-                                    <input id="filterFromDate" type="date" />
-                                </div>
-                                <div class="form-group">
-                                    <label>To</label>
-                                    <input id="filterToDate" type="date" />
-                                </div>
-                            </div>
-                            <div class="form-group" style="width: 100%">
-                                <label>Note Keyword</label>
-                                <div style="display: flex; gap: 8px">
-                                    <input
-                                        id="filterNote"
-                                        placeholder="Search string..."
-                                    />
-                                    <button
-                                        class="secondary"
-                                        onclick="loadExpenses()"
-                                    >
-                                        Query Stream
-                                    </button>
-                                </div>
+                        <div class="form-group">
+                            <label>Min Amt</label>
+                            <input
+                                id="filterMinAmount"
+                                type="number"
+                                placeholder="Min"
+                            />
+                        </div>
+                        <div class="form-group">
+                            <label>Max Amt</label>
+                            <input
+                                id="filterMaxAmount"
+                                type="number"
+                                placeholder="Max"
+                            />
+                        </div>
+                        <div class="form-group">
+                            <label>From</label>
+                            <input id="filterFromDate" type="date" />
+                        </div>
+                        <div class="form-group">
+                            <label>To</label>
+                            <input id="filterToDate" type="date" />
+                        </div>
+                        <div class="form-group" style="grid-column: span 2; min-width: 280px;">
+                            <label>Note Keyword</label>
+                            <div style="display: flex; gap: 8px">
+                                <input
+                                    id="filterNote"
+                                    placeholder="Search string..."
+                                    style="flex: 1"
+                                />
+                                <button
+                                    class="secondary"
+                                    onclick="loadExpenses()"
+                                >
+                                    Query Stream
+                                </button>
                             </div>
                         </div>
-
-                        <div
-                            class="form-group"
-                            style="width: 320px; flex-shrink: 0"
-                        >
+                        <div class="form-group" style="grid-column: 1 / -1; width: 100%;">
                             <label>Filter Categories (Click to toggle)</label>
                             <div
                                 id="filterCategoryBadges"
                                 style="
                                     display: flex;
-                                    flex-wrap: nowrap;
-                                    gap: 6px;
+                                    flex-wrap: wrap;
+                                    gap: 8px;
                                     margin-top: 6px;
-                                    overflow-x: auto;
-                                    padding-bottom: 8px;
+                                    padding-bottom: 4px;
                                     width: 100%;
-                                    scrollbar-width: thin;
                                 "
                             >
                                 <!-- Injected interactively -->
